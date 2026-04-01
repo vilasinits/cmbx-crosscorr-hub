@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GODMAX Diagnostics — Covariance Validation Report</title>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+  :root {
+    --bg:#0f1117; --bg2:#161b22; --bg3:#1c2128; --border:#30363d;
+    --text:#c9d1d9; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950;
+    --yellow:#d29922; --red:#f85149; --purple:#bc8cff; --sidebar-w:280px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+    font-size:15px; line-height:1.72; display:flex;
+  }
+  #sidebar {
+    width:var(--sidebar-w); min-height:100vh; background:var(--bg2);
+    border-right:1px solid var(--border); position:sticky; top:0; height:100vh;
+    overflow-y:auto; flex-shrink:0; padding:20px 0;
+  }
+  #sidebar h2 {
+    font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+    padding:0 18px 10px; border-bottom:1px solid var(--border); margin-bottom:10px;
+  }
+  #sidebar .sec-label {
+    font-size:11px; font-weight:600; color:var(--text);
+    padding:14px 18px 4px; text-transform:uppercase; letter-spacing:.06em;
+  }
+  #sidebar a {
+    display:block; padding:5px 18px; color:var(--muted); text-decoration:none;
+    font-size:12.5px; border-left:2px solid transparent; transition:all .15s;
+  }
+  #sidebar a:hover, #sidebar a.active {
+    color:var(--accent); border-left-color:var(--accent); background:rgba(88,166,255,.06);
+  }
+  #content { flex:1; max-width:980px; padding:40px 48px; overflow-x:hidden; }
+  .hero {
+    border-bottom:1px solid var(--border); padding-bottom:28px; margin-bottom:38px;
+  }
+  .hero h1 { font-size:30px; line-height:1.2; font-weight:650; color:#e6edf3; margin-bottom:10px; }
+  .hero .meta { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .hero .meta span { margin-right:18px; }
+  h2.sec {
+    font-size:21px; font-weight:650; color:#e6edf3; margin:50px 0 10px;
+    padding-bottom:8px; border-bottom:1px solid var(--border);
+  }
+  h3.sub { font-size:16px; font-weight:650; color:var(--accent); margin:28px 0 10px; }
+  p { margin-bottom:14px; }
+  ul, ol { padding-left:24px; margin-bottom:14px; }
+  li { margin-bottom:6px; }
+  strong { color:#e6edf3; }
+  code {
+    font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    font-size:12px; background:var(--bg3); border-radius:3px; padding:1px 5px; color:#e6edf3;
+  }
+  .output {
+    background:#0d1117; border:1px solid var(--border); border-left:3px solid var(--green);
+    border-radius:0 6px 6px 0; padding:12px 16px; font-size:12.5px;
+    font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    line-height:1.55; margin:14px 0; white-space:pre-wrap; color:#c9d1d9;
+  }
+  .output.warn { border-left-color:var(--yellow); }
+  .output.result { border-left-color:var(--purple); }
+  .callout {
+    border-radius:6px; padding:14px 18px; margin:18px 0; border-left:4px solid; font-size:14px;
+  }
+  .callout.info  { background:rgba(88,166,255,.08); border-color:var(--accent); }
+  .callout.warn  { background:rgba(210,153,34,.08); border-color:var(--yellow); }
+  .callout.good  { background:rgba(63,185,80,.08); border-color:var(--green); }
+  .callout.bad   { background:rgba(248,81,73,.08); border-color:var(--red); }
+  .callout strong { display:block; margin-bottom:4px; }
+  .badge {
+    display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px;
+    margin-left:8px; vertical-align:middle; text-transform:uppercase; letter-spacing:.04em;
+  }
+  .badge.pass { background:rgba(63,185,80,.2); color:var(--green); }
+  .badge.fail { background:rgba(248,81,73,.2); color:var(--red); }
+  .badge.info { background:rgba(88,166,255,.2); color:var(--accent); }
+  table { border-collapse:collapse; width:100%; margin:14px 0; font-size:13.5px; }
+  th, td { border:1px solid var(--border); padding:8px 12px; text-align:left; vertical-align:top; }
+  th { background:var(--bg3); color:#e6edf3; font-weight:600; }
+  tr:nth-child(even) { background:var(--bg2); }
+  .fig-wrap { margin:22px 0 30px; text-align:center; }
+  .fig-wrap img { max-width:100%; border:1px solid var(--border); border-radius:6px; background:#fff; }
+  .fig-caption { font-size:12px; color:var(--muted); margin-top:8px; font-style:italic; }
+  .fig-row { display:flex; gap:14px; margin:20px 0 28px; align-items:flex-start; }
+  .fig-row .fig-wrap { flex:1; margin:0; }
+  details { margin:14px 0 18px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; }
+  summary { cursor:pointer; padding:12px 16px; color:#e6edf3; font-weight:600; }
+  details .output { margin:0 16px 16px; }
+  hr { border:none; border-top:1px solid var(--border); margin:36px 0; }
+  @media (max-width:900px) {
+    body { display:block; }
+    #sidebar { width:100%; height:auto; min-height:unset; position:relative; }
+    #content { max-width:none; padding:28px 20px; }
+    .fig-row { display:block; }
+    .fig-row .fig-wrap { margin-bottom:18px; }
+  }
+</style>
+</head>
+<body>
+<nav id="sidebar">
+  <h2>GODMAX Diagnostics</h2>
+  <div class="sec-label">Overview</div>
+  <a href="#overview">Goals and main conclusion</a>
+  <a href="#strategy">Validation strategy</a>
+  <div class="sec-label">Pipeline and issue</div>
+  <a href="#setup">Setup</a>
+  <a href="#psd-overview">Multi-probe PSD issue</a>
+  <div class="sec-label">Physical consistency tests</div>
+  <a href="#pk3d">3-D Cauchy–Schwarz</a>
+  <a href="#limber">Limber validation</a>
+  <a href="#angular-cs">Angular Cauchy–Schwarz</a>
+  <a href="#psup">Suppression factor analysis</a>
+  <div class="sec-label">Sensitivity tests</div>
+  <a href="#fixa">Fix A</a>
+  <a href="#fixb">Fix B</a>
+  <a href="#eigdiag">Eigenvalue diagnostics</a>
+  <a href="#knox">Knox validation</a>
+  <a href="#clipping">PSD clipping impact</a>
+  <a href="#cls-overview">Angular spectra overview</a>
+  <div class="sec-label">Conclusion</div>
+  <a href="#conclusion">Root cause and resolution</a>
+</nav>
+
+<main id="content">
+
+<div class="hero" id="overview">
+  <h1>GODMAX Diagnostics: Covariance Validation Report</h1>
+  <div class="meta">
+    <span>Notebook origin: <code>diagnostics_tests.ipynb</code></span>
+    <span>Branch: <code>dev-diagnostics</code></span>
+    <span>Main probes: <code>gy</code>, <code>gg</code>, <code>ky</code></span>
+  </div>
+  <p>
+    This report documents a systematic validation of the GODMAX covariance pipeline.
+    The starting issue is that multi-probe covariance matrices develop a small number of negative eigenvalues,
+    whereas single-probe cases remain positive semidefinite (PSD). The aim is to determine whether those
+    negative modes indicate a physical inconsistency, an implementation error, or a harmless numerical effect.
+  </p>
+  <p>
+    The tests proceed from the 3-D halo-model power spectra to Limber projection, angular consistency,
+    covariance assembly, and eigenvalue diagnostics. An independent reconstruction of the Gaussian covariance
+    using the <strong>Knox formula</strong> is used as a final cross-check.
+  </p>
+  <div class="callout good">
+    <strong>Main conclusion</strong>
+    The covariance implementation is correct. The Knox-based covariance reproduces the GODMAX Gaussian covariance
+    to floating-point precision, and the observed negative eigenvalues are tiny numerical artifacts
+    (typically at the $10^{-27}$ level), not signs of a physical or coding error.
+  </div>
+</div>
+
+<h2 class="sec" id="strategy">Validation strategy</h2>
+<p>
+  The validation is organized as a sequence of independent tests, each targeting a different stage of the pipeline.
+  This structure makes it possible to separate physical consistency checks from purely numerical ones.
+</p>
+<table>
+  <tr><th>Test</th><th>Question addressed</th><th>Main outcome</th></tr>
+  <tr><td>3-D Cauchy–Schwarz</td><td>Are the halo-model power spectra internally consistent?</td><td>Small violation in $(gy,gg,yy)$ due to asymmetric $P_\mathrm{sup}$ usage</td></tr>
+  <tr><td>Limber validation</td><td>Is the angular projection implemented correctly?</td><td>Agreement at machine precision</td></tr>
+  <tr><td>Angular Cauchy–Schwarz</td><td>Does the projected field-level consistency hold?</td><td>Marginal violation confined to $gy$ bin 1</td></tr>
+  <tr><td>Suppression-factor analysis</td><td>Where does the asymmetry enter?</td><td>Applied to $P_{gg}$ but not to $P_{gy}$ or $P_{yy}$</td></tr>
+  <tr><td>Fix A / Fix B tests</td><td>Do physically motivated spectrum changes resolve the issue?</td><td>They change the spectra as expected, but not the tiny negative modes</td></tr>
+  <tr><td>Eigenvalue diagnostics</td><td>How large are the negative modes and where do they live?</td><td>They are extremely small and localized in a near-canceling mode</td></tr>
+  <tr><td>Knox validation</td><td>Is the Gaussian covariance assembly implemented correctly?</td><td>Yes; independent reconstruction matches GODMAX</td></tr>
+  <tr><td>PSD clipping</td><td>Does numerical regularization change the covariance meaningfully?</td><td>No; clipping produces negligible changes</td></tr>
+</table>
+
+<h2 class="sec" id="setup">Setup</h2>
+<p>
+  All tests were run using the standard GODMAX class chain
+  <code>base_class → Profiles → get_Pkz → get_Cl → get_cov</code>.
+  The full pipeline executed successfully, and the resulting objects were used consistently throughout the report.
+</p>
+<div class="output">Run summary
+-----------
+ell bins              : 15
+ell range             : [90.4, 2269.7]
+redshift grid         : [0.01, 1.6] with nz = 22
+halo mass grid        : [11.5, 15.5] with nM = 24
+tomographic lens bins : 5
+yy noise              : loaded and added successfully</div>
+<p>
+  The key point is that the end-to-end pipeline runs without failure. The issue investigated here appears only
+  at the level of the final covariance eigenvalues.
+</p>
+
+<h2 class="sec" id="psd-overview">Multi-probe covariance PSD overview</h2>
+<p>
+  The first observation is simple: single-probe covariance matrices are PSD, but some multi-probe combinations
+  develop a handful of tiny negative eigenvalues.
+</p>
+<div class="output">Default covariance behaviour
+---------------------------
+probes ['gy', 'gg'] : matrix size (150, 150), min eigenvalue = -6.813e-27, n_neg = 7
+probes ['gg']       : matrix size (75, 75),  min eigenvalue =  2.341e-47, n_neg = 0</div>
+<div class="callout warn">
+  <strong>Observation</strong>
+  The issue appears only once multiple probes are coupled. This points away from a simple coding failure in a single
+  auto-spectrum block and toward either a consistency issue between fields or a numerical effect in the full matrix assembly.
+</div>
+
+<div class="fig-row">
+  <div class="fig-wrap">
+    <img src="plots/cov_gy_gg.png" alt="Covariance matrix: gy + gg">
+    <div class="fig-caption">Fig. 1a. Default covariance for the probe set [gy, gg]. White lines indicate probe boundaries.</div>
+  </div>
+  <div class="fig-wrap">
+    <img src="plots/cov_gg.png" alt="Covariance matrix: gg only">
+    <div class="fig-caption">Fig. 1b. Single-probe covariance for [gg]. This case remains PSD.</div>
+  </div>
+</div>
+<div class="fig-wrap">
+  <img src="plots/cov_ky_gg_gy.png" alt="Covariance matrix: ky + gg + gy">
+  <div class="fig-caption">Fig. 1c. Example of a larger multi-probe covariance including [ky, gg, gy].</div>
+</div>
+
+<h2 class="sec" id="pk3d">3-D power spectra and Cauchy–Schwarz consistency</h2>
+<p>
+  Before looking at angular quantities, we test whether the halo-model 3-D spectra are internally consistent.
+  The relevant condition is
+</p>
+$$
+r_{xy}(k,z) \equiv \frac{P_{xy}^2(k,z)}{P_{xx}(k,z)P_{yy}(k,z)} \le 1.
+$$
+<p>
+  If this fails, then some inconsistency is already present before Limber projection.
+</p>
+<div class="output warn">3-D Cauchy–Schwarz ratios in the Limber-relevant band
+---------------------------------------------------
+(ky, kk, yy) : max r = 0.873   OK
+(gy, gg, yy) : max r = 1.031   VIOLATED
+(gk, gg, kk) : max r = 0.961   OK</div>
+<div class="callout warn">
+  <strong>Finding</strong>
+  The only clear violation is the $(gy,gg,yy)$ triplet. This already indicates that the source of the issue is not
+  general to all fields, but tied specifically to the interplay between galaxy and tSZ spectra.
+</div>
+<div class="fig-wrap">
+  <img src="plots/pk3d_allprobes_shapes.png" alt="3-D power spectra shapes">
+  <div class="fig-caption">Fig. 2a. Shapes and amplitudes of the six 3-D power spectra used in the analysis.</div>
+</div>
+<div class="fig-wrap">
+  <img src="plots/pk3d_cs_ratios.png" alt="3-D Cauchy–Schwarz ratios">
+  <div class="fig-caption">Fig. 2b. 3-D Cauchy–Schwarz ratios. Only the $(gy,gg,yy)$ combination exceeds unity.</div>
+</div>
+
+<h2 class="sec" id="limber">Limber integral validation</h2>
+<p>
+  The next step is to verify that the Limber projection itself is correct. The angular spectra are recomputed independently
+  in NumPy using the same input spectra and kernels, and are then compared against the GODMAX outputs.
+</p>
+$$
+C_\ell^{AB} = \int \frac{W_A(\chi)W_B(\chi)}{\chi^2}
+P_{AB}\!\left(\frac{\ell+\tfrac12}{\chi},z(\chi)\right)\frac{d\chi}{dz}\,dz.
+$$
+<div class="output result">Manual Limber reconstruction vs GODMAX
+-------------------------------------
+kk : max rel. error = 1.3e-16
+ky : max rel. error = 2.1e-16
+yy : max rel. error = 8.7e-17
+gg : max rel. error = 1.9e-16</div>
+<div class="callout good">
+  <strong>Result</strong>
+  The Limber projection is numerically exact at machine precision for all tested probes. This rules out the projection
+  machinery as the origin of the covariance issue.
+</div>
+<div class="fig-wrap">
+  <img src="plots/limber_validation_allprobes.png" alt="Limber validation">
+  <div class="fig-caption">Fig. 3. Manual Limber integrals overlaid on GODMAX angular spectra. Residuals stay at machine precision.</div>
+</div>
+
+<h2 class="sec" id="angular-cs">Angular Cauchy–Schwarz consistency</h2>
+<p>
+  After projection, the same consistency can be tested directly at the level of the angular spectra:
+</p>
+$$
+r^\ell_{xy} \equiv \frac{\left[C_\ell^{xy}\right]^2}{C_{\ell,\mathrm{tot}+N}^{xx}C_{\ell,\mathrm{tot}+N}^{yy}} \le 1.
+$$
+<div class="output warn">Angular Cauchy–Schwarz summary
+------------------------------
+ky : all bins satisfy the bound
+gy : bin 1 reaches r_max = 1.0312 at ell ≈ 506.5
+gk : all bins satisfy the bound</div>
+<div class="callout warn">
+  <strong>Finding</strong>
+  The projected violation is small and confined to the first $gy$ lens bin. This mirrors the 3-D result and confirms that
+  the inconsistency survives projection, but only weakly.
+</div>
+<div class="fig-wrap">
+  <img src="plots/angular_cs_ratios.png" alt="Angular Cauchy-Schwarz ratios">
+  <div class="fig-caption">Fig. 4. Angular Cauchy–Schwarz ratios for $\kappa y$, $gy$, and $g\kappa$. Only $gy$ bin 1 exceeds unity.</div>
+</div>
+
+<h2 class="sec" id="psup">Baryonic suppression factor analysis</h2>
+<p>
+  The suppression factor is defined as
+</p>
+$$
+S(k,z) \equiv \frac{P_{\mathrm{halofit}}^{\mathrm{DM}}(k,z)}{P_{\mathrm{NFW,tot}}(k,z)}.
+$$
+<p>
+  It is best interpreted here as a halo-model accuracy correction for matter-like spectra, rather than a generic baryonic correction
+  applicable to every field.
+</p>
+<table>
+  <tr><th>Spectrum</th><th>Suppressed by $S(k,z)$?</th><th>Interpretation</th></tr>
+  <tr><td>$P_{mm}$</td><td>Yes</td><td>Target of the matter calibration</td></tr>
+  <tr><td>$P_{gm}, P_{gg}$</td><td>Yes</td><td>Approximate extension to biased tracers</td></tr>
+  <tr><td>$P_{ym}, P_{gy}, P_{yy}$</td><td>No</td><td>Pressure-sector spectra are already baryonified in the BCMP/HSE chain</td></tr>
+</table>
+<div class="callout info">
+  <strong>Interpretation</strong>
+  The asymmetry is now clear: $P_{gg}$ is reduced by $S(k,z)$, while $P_{gy}$ and $P_{yy}$ are left untouched.
+  That is exactly the pattern required to produce the $(gy,gg,yy)$ Cauchy–Schwarz violation.
+</div>
+<div class="output">Suppression factor in the Limber-relevant range
+---------------------------------------------
+Typical median values of S(k,z): 0.89 – 0.99 depending on redshift
+Deepest suppression occurs at larger k, reaching roughly 30% in the most affected region</div>
+<div class="fig-wrap">
+  <img src="plots/Pgg_suppression_effect.png" alt="Suppression effect on Pgg">
+  <div class="fig-caption">Fig. 5. Suppression factor and its impact on $P_{gg}$ across the Limber-relevant $k$ range.</div>
+</div>
+
+<h2 class="sec" id="fixa">Fix A: remove $P_\mathrm{sup}$ from $P_{gg}$</h2>
+<p>
+  Fix A removes the suppression from $P_{gg}$. This is physically attractive because $S(k,z)$ is calibrated against the matter field,
+  not against biased HOD tracers.
+</p>
+<div class="output">Fix A summary
+------------
+mean Cl_gg ratio (fixA / default) = 1.0487
+covariance recomputed successfully</div>
+<div class="callout good">
+  <strong>Interpretation</strong>
+  This change increases $C_\ell^{gg}$ as expected and restores the natural ordering between $gy$, $gg$, and $yy$ without introducing
+  an unphysical modification to the tSZ sector.
+</div>
+<div class="fig-row">
+  <div class="fig-wrap">
+    <img src="plots/cov_fixA_gy_gg.png" alt="Fix A covariance">
+    <div class="fig-caption">Fig. 6a. Covariance after Fix A for [gy, gg].</div>
+  </div>
+  <div class="fig-wrap">
+    <img src="plots/cov_diff_fixA_gy_gg.png" alt="Fix A difference">
+    <div class="fig-caption">Fig. 6b. Difference between Fix A and the default covariance.</div>
+  </div>
+</div>
+
+<h2 class="sec" id="fixb">Fix B: apply $P_\mathrm{sup}$ consistently to $P_{gy}$ and $P_{yy}$</h2>
+<p>
+  Fix B preserves the suppression in $P_{gg}$ but applies the same factor to $P_{gy}$ and $P_{yy}$, thereby enforcing the Cauchy–Schwarz relation formally.
+</p>
+<div class="output">Fix B summary
+------------
+mean Cl_gy ratio (fixB / default) = 0.9521
+mean Cl_yy ratio (fixB / default) = 0.9514
+covariance recomputed successfully</div>
+<div class="callout warn">
+  <strong>Interpretation</strong>
+  This restores formal consistency, but at the cost of suppressing the tSZ sector using a factor calibrated for the dark-matter halo model.
+  It is therefore better viewed as a sensitivity test than as a preferred physical prescription.
+</div>
+<div class="fig-row">
+  <div class="fig-wrap">
+    <img src="plots/cov_fixB_gy_gg.png" alt="Fix B covariance">
+    <div class="fig-caption">Fig. 7a. Covariance after Fix B for [gy, gg].</div>
+  </div>
+  <div class="fig-wrap">
+    <img src="plots/cov_diff_fixB_gy_gg.png" alt="Fix B difference">
+    <div class="fig-caption">Fig. 7b. Difference between Fix B and the default covariance.</div>
+  </div>
+</div>
+
+<h2 class="sec" id="eigdiag">Eigenvalue diagnostics</h2>
+<p>
+  The key numerical question is whether the negative eigenvalues are large enough to matter. They are not.
+</p>
+<div class="output result">Negative eigenvalue summary
+--------------------------
+default : min eig = -6.813e-27, n_neg = 7
+fixA    : min eig = -6.453e-27, n_neg = 6
+fixB    : min eig = -6.768e-27, n_neg = 8</div>
+<div class="callout good">
+  <strong>Key observation</strong>
+  The negative modes are tiny compared with the positive spectrum. They sit many orders of magnitude below the dominant covariance scale and are fully consistent with floating-point cancellation.
+</div>
+<p>
+  The worst mode is dominated by the <code>gy bin_1_0</code> direction around $\ell \approx 718$, which is exactly where the Gaussian and non-Gaussian terms nearly cancel.
+</p>
+<div class="fig-wrap">
+  <img src="plots/diag_field_matrix_eigval.png" alt="Field-matrix eigenvalue">
+  <div class="fig-caption">Fig. 8a. Minimum eigenvalue of the field-level $C_\ell$ matrix as a function of multipole.</div>
+</div>
+<div class="fig-wrap">
+  <img src="plots/diag_schur_complement.png" alt="Schur complement">
+  <div class="fig-caption">Fig. 8b. Schur complement of the multi-bin field matrix. Fix A remains positive; Fix B can become marginally negative.</div>
+</div>
+
+<h2 class="sec" id="knox">Knox formula validation</h2>
+<p>
+  To validate the Gaussian covariance assembly directly, we reconstructed it from scratch using the Knox formula and compared it block-by-block and matrix-by-matrix against <code>covG_dict</code>.
+</p>
+<div class="callout good">
+  <strong>Block-level result</strong>
+  All Gaussian covariance blocks agree with the independent Knox reconstruction to floating-point precision.
+</div>
+<div class="output result">Knox validation summary
+-----------------------
+Overall: ALL BLOCKS AGREE to floating-point precision
+
+probes ['ky','gy']:
+  Max |ΔCov|/|Cov_G| = 2.210e-16
+  Mean |ΔCov|/|Cov_G| = 2.869e-18
+
+probes ['gy','gg']:
+  Max |ΔCov|/|Cov_G| = 2.198e-16
+  Mean |ΔCov|/|Cov_G| = 2.956e-18</div>
+<div class="callout good">
+  <strong>Interpretation</strong>
+  The Gaussian covariance implementation is correct. Any remaining negative modes in the Gaussian matrix are therefore numerical properties of the matrix itself, not mistakes in its construction.
+</div>
+
+<details>
+  <summary>Sample eigenvalue comparison for <code>['ky','gy']</code></summary>
+  <div class="output result">idx              GODMAX                Knox      rel_diff
+------------------------------------------------------------
+0        -1.638110e-31       -1.638110e-31     6.870e-11
+1        -1.591052e-31       -1.591052e-31     7.942e-12
+2        -1.260112e-31       -1.260112e-31     2.216e-11
+3        -8.201880e-32       -8.201880e-32     1.779e-11
+4        -4.157738e-32       -4.157738e-32     2.644e-10</div>
+</details>
+
+<details>
+  <summary>Sample eigenvalue comparison for <code>['gy','gg']</code></summary>
+  <div class="output result">idx              GODMAX                Knox      rel_diff
+------------------------------------------------------------
+0        -1.528033e-29       -3.220552e-29     5.255e-01
+1        -5.445045e-30       -1.729160e-29     6.851e-01
+2         2.768185e-31       -1.092640e-30     1.253e+00
+3         5.107288e-31        1.784427e-31     6.506e-01
+4         6.411966e-31        5.088186e-31     2.065e-01</div>
+</details>
+
+<div class="fig-row">
+  <div class="fig-wrap">
+    <img src="plots/cov_G_knox_validation_ky_gy.png" alt="Knox validation ky gy">
+    <div class="fig-caption">Fig. 9a. GODMAX and Knox Gaussian covariances for [ky, gy].</div>
+  </div>
+  <div class="fig-wrap">
+    <img src="plots/cov_G_knox_validation_gy_gg.png" alt="Knox validation gy gg">
+    <div class="fig-caption">Fig. 9b. GODMAX and Knox Gaussian covariances for [gy, gg].</div>
+  </div>
+</div>
+
+<h2 class="sec" id="clipping">Impact of PSD clipping</h2>
+<p>
+  Since the remaining negative eigenvalues are purely numerical, we also test whether projecting the covariance onto the PSD cone
+  by clipping negative eigenvalues changes the matrix in any physically meaningful way. It does not.
+</p>
+<div class="callout good">
+  <strong>Result</strong>
+  Clipping removes the tiny negative eigenvalues but leaves the covariance visually unchanged.
+  The difference matrices are consistent with numerical noise only.
+</div>
+
+<div class="fig-column">
+  <div class="fig-wrap">
+    <img src="plots/cov_G_godmax_clipped_comparison_gy_gg.png" alt="Gaussian clipping comparison">
+    <div class="fig-caption">Fig. 10a. Original and clipped Gaussian covariance for [gy, gg].</div>
+  </div>
+  <div class="fig-wrap">
+    <img src="plots/cov_tot_clipped_comparison_gy_gg.png" alt="Full clipping comparison">
+    <div class="fig-caption">Fig. 10b. Original and clipped full covariance for [gy, gg].</div>
+  </div>
+</div>
+<div class="fig-wrap">
+  <img src="plots/cov_tot_clipped_comparison_gy_gg_ky_kk_gk_yy.png" alt="Full multi-probe clipping comparison">
+  <div class="fig-caption">Fig. 10c. Original and clipped covariance for the full multi-probe set [gy, gg, ky, kk, gk, yy].</div>
+</div>
+
+<h2 class="sec" id="cls-overview">Angular power spectra overview</h2>
+<p>
+  As a final forward-model sanity check, all angular power spectra from <code>Cls_test</code> are shown together.
+  This provides a compact view of the relative amplitudes, scale dependence, and tomographic structure across the full probe set.
+</p>
+<div class="fig-wrap">
+  <img src="plots/all_cls_overview.png" alt="All angular power spectra">
+  <div class="fig-caption">Fig. 11. Overview of the angular power spectra from <code>Cls_test</code> for $kk$, $ky$, $yy$, $gg$, $gy$, and $gk$.</div>
+</div>
+<div class="callout info">
+  <strong>Interpretation</strong>
+  The spectra are smooth, ordered sensibly, and does not seem to show no anomalous features that would suggest a deeper modeling pathology before covariance construction.
+</div>
+
+<h2 class="sec" id="conclusion">Root cause and resolution</h2>
+<table>
+  <tr><th>Test</th><th>Result</th><th>Status</th></tr>
+  <tr><td>3-D Cauchy–Schwarz</td><td>Violated only for $(gy,gg,yy)$</td><td><span class="badge fail">Physical asymmetry</span></td></tr>
+  <tr><td>Limber validation</td><td>Exact at machine precision</td><td><span class="badge pass">Pass</span></td></tr>
+  <tr><td>Angular Cauchy–Schwarz</td><td>Marginal violation in $gy$ bin 1</td><td><span class="badge fail">Weakly propagated</span></td></tr>
+  <tr><td>Knox validation</td><td>Independent Gaussian covariance matches GODMAX</td><td><span class="badge pass">Pass</span></td></tr>
+  <tr><td>Eigenvalue scale</td><td>Negative modes at $\sim 10^{-27}$</td><td><span class="badge pass">Numerical</span></td></tr>
+  <tr><td>PSD clipping</td><td>No meaningful matrix change</td><td><span class="badge pass">Safe</span></td></tr>
+</table>
+
+<p>
+  The only physically meaningful inconsistency identified in this study is the asymmetric application of the suppression factor:
+  $P_{gg}$ is suppressed while $P_{gy}$ and $P_{yy}$ are not. This creates a small Cauchy–Schwarz violation in the $(gy,gg,yy)$ sector.
+  However, this effect does <em>not</em> explain the negative covariance eigenvalues.
+</p>
+<p>
+  The negative eigenvalues arise from floating-point near-cancellation in a very small subspace of the full covariance and remain far below the physical
+  scale of the matrix. The independent Knox reconstruction confirms that the Gaussian covariance is assembled correctly, and PSD clipping confirms that
+  removing the negative modes has no practical effect on the covariance structure.
+</p>
+
+<div class="callout good">
+  <strong>Recommended resolution</strong>
+  Treat the negative eigenvalues as harmless numerical artifacts and regularize them if required for downstream numerical stability.
+  For the physical modeling, Fix A is the better-motivated option: do not apply $P_\mathrm{sup}$ to $P_{gg}$ unless a tracer-specific calibration justifies it.
+</div>
+
+<hr>
+<p style="color:var(--muted); font-size:12px;">
+  Rewritten from the original notebook-derived diagnostics page for readability and external sharing.
+  Figures remain unchanged and should live in the same <code>plots/</code> directory as this file.
+</p>
+
+</main>
+
+<script>
+const sections = document.querySelectorAll('[id]');
+const links = document.querySelectorAll('#sidebar a');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const a = document.querySelector(`#sidebar a[href="#${e.target.id}"]`);
+      if (a) a.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
