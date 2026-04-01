@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GODMAX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0C1520; --bg2:#101C2C; --panel:#182334; --panel2:#1E2E42;
+    --border:#253650; --border2:#1E2C42;
+    --text:#D8E6F5; --text2:#A0BAD5; --muted:#607890;
+    --blue:#5AAEE0; --green:#4DC87E; --amber:#F0A840; --purple:#A878E8; --teal:#38C8D8; --red:#E06070;
+    --blue-mid:#1E3C5A; --green-mid:#143828; --amber-mid:#3A2408; --purple-mid:#261444; --teal-mid:#0E2830;
+    --hdr:#070F1A; --hdr-text:rgba(220,235,250,.9); --hdr-muted:rgba(170,200,230,.45);
+    --sans:'Inter',system-ui,-apple-system,sans-serif; --mono:'Cascadia Code','Fira Code','JetBrains Mono',ui-monospace,monospace;
+    --r:10px; --r-lg:14px; --sh:0 2px 14px rgba(0,0,0,.35); --sh2:0 8px 28px rgba(0,0,0,.45);
+    --hh:60px;
+  }
+  html { scroll-behavior:smooth; scroll-padding-top: calc(var(--hh) + 18px); }
+  body { font-family: var(--sans); background: linear-gradient(180deg, var(--bg), #0a1320 35%, var(--bg2)); color: var(--text); line-height: 1.72; font-size: 15px; padding-top: var(--hh); }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size:.83em; background: rgba(90,174,224,.12); color: var(--blue); border-radius:6px; padding:2px 6px; }
+  .site-header {
+    position: fixed; top:0; left:0; right:0; z-index:1000; height:var(--hh);
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    padding:0 28px; background: rgba(7,15,26,.9); backdrop-filter: blur(10px);
+    border-bottom:1px solid rgba(90,174,224,.15);
+  }
+  .site-logo { font-weight: 800; color: var(--hdr-text); letter-spacing:-.01em; }
+  .site-logo em { color: var(--blue); font-style:normal; }
+  .site-nav { display:flex; gap:8px; overflow:auto; scrollbar-width:none; }
+  .site-nav::-webkit-scrollbar { display:none; }
+  .site-nav a { color: var(--hdr-muted); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:600; white-space:nowrap; }
+  .site-nav a:hover, .site-nav a.active { color: var(--hdr-text); background: rgba(90,174,224,.12); text-decoration:none; }
+  .container { width:min(1120px, calc(100% - 40px)); margin:0 auto; }
+  .section { padding: 72px 0; border-bottom:1px solid var(--border2); }
+  .hero { padding: 34px 0 28px; }
+  .eyebrow { color: var(--blue); text-transform: uppercase; font-size: 11px; letter-spacing:.12em; font-weight:700; margin-bottom:8px; }
+  h1 { font-size: clamp(2.3rem, 6vw, 4.2rem); line-height:1.05; font-weight:800; letter-spacing:-.03em; margin-bottom: 14px;
+       background: linear-gradient(135deg, var(--text) 35%, var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .hero-sub { color: var(--text2); font-size: 1.07rem; max-width: 820px; }
+  .badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+  .badge { display:inline-block; padding:4px 11px; border-radius:999px; font-size:.76rem; font-weight:700; }
+  .b-blue { background:var(--blue-mid); color:var(--blue); }
+  .b-green { background:var(--green-mid); color:var(--green); }
+  .b-amber { background:var(--amber-mid); color:var(--amber); }
+  .b-purple { background:var(--purple-mid); color:var(--purple); }
+  .b-teal { background:var(--teal-mid); color:var(--teal); }
+  .b-gray { background:rgba(255,255,255,.08); color:var(--text2); }
+  h2 { font-size:1.75rem; font-weight:800; line-height:1.2; margin-bottom:10px; }
+  .section-sub { color: var(--muted); max-width: 760px; margin-bottom: 26px; }
+  .grid-2 { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:18px; }
+  .grid-4 { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:16px; }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    border:1px solid var(--border); border-radius: var(--r-lg); padding: 22px 22px 20px;
+    box-shadow: var(--sh); min-height: 100%;
+  }
+  .card h3 { font-size: 1.05rem; margin-bottom:8px; color: var(--text); }
+  .card p { color: var(--text2); font-size:.94rem; margin-bottom: 12px; }
+  .card ul { margin-left: 18px; color: var(--text2); font-size:.9rem; }
+  .card li { margin-bottom: 4px; }
+  .cta-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .btn {
+    display:inline-flex; align-items:center; gap:8px; border-radius:10px; padding:10px 14px; font-weight:700; font-size:.9rem;
+    border:1px solid var(--border); text-decoration:none;
+  }
+  .btn.primary { background: linear-gradient(180deg, rgba(90,174,224,.18), rgba(90,174,224,.08)); color: var(--text); }
+  .btn.secondary { background: rgba(255,255,255,.03); color: var(--text2); }
+  .btn:hover { text-decoration:none; transform: translateY(-1px); }
+  .kpi-grid { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; margin-top:18px; }
+  .kpi { background: var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; box-shadow: var(--sh); }
+  .kpi .label { color: var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; margin-bottom:8px; }
+  .kpi .value { color: var(--text); font-size:1rem; font-weight:700; }
+  .flow {
+    display:grid; grid-template-columns: 1.3fr .2fr 1fr .2fr 1fr; gap: 10px; align-items:center;
+    margin-top: 18px;
+  }
+  .flow .node {
+    background: var(--panel); border:1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--sh);
+  }
+  .flow .node h4 { margin-bottom: 6px; color: var(--text); }
+  .flow .node p { color: var(--text2); font-size:.9rem; }
+  .arrow { text-align:center; color: var(--muted); font-size: 1.6rem; }
+  .folder-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:18px; }
+  .folder-card { position:relative; overflow:hidden; }
+  .folder-card::after {
+    content:''; position:absolute; inset:auto -20% -40% auto; width:180px; height:180px; border-radius:50%;
+    background: radial-gradient(circle, rgba(90,174,224,.12), rgba(90,174,224,0));
+    pointer-events:none;
+  }
+  .mini-links { display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px; }
+  .mini-links a {
+    display:inline-block; padding:6px 10px; border-radius:999px; font-size:.8rem; background: rgba(255,255,255,.04); border:1px solid var(--border); color: var(--text2); text-decoration:none;
+  }
+  .mini-links a:hover { color: var(--text); }
+  .footer { padding: 36px 0 60px; color: var(--muted); font-size:.88rem; }
+  @media (max-width: 920px) {
+    .grid-2, .grid-4, .folder-grid, .kpi-grid, .flow { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head><body>
+<header class="site-header">
+  <div class="site-logo">GOD<em>MAX</em></div>
+  <nav class="site-nav">
+    <a href="../index.html">Hub</a>
+    <a href="technical_reference.html">Technical reference</a>
+    <a href="framework.html">Framework</a>
+    <a href="debugging.html">Debugging</a>
+  </nav>
+</header>
+<section class="section hero"><div class="container">
+  <div class="eyebrow">Subsystem landing</div>
+  <h1>GODMAX</h1>
+  <p class="hero-sub">Gas thermodynamics and matter distribution using JAX. This section gathers the theory, framework notes, and a debugging-oriented entry point.</p>
+  <div class="badges">
+    <span class="badge b-blue">Halo model</span><span class="badge b-purple">JAX + NumPyro</span><span class="badge b-green">Framework docs</span>
+  </div>
+  <div class="folder-grid" style="margin-top:26px;">
+    <div class="card"><h3>Technical reference</h3><p>Equations, layout, profiles, covariance construction, noise, parameters, and assumptions.</p><a class="btn primary" href="technical_reference.html">Open page</a></div>
+    <div class="card"><h3>Framework notes</h3><p>Code-facing overview of modules, class hierarchy, available probes, and implementation flow.</p><a class="btn primary" href="framework.html">Open page</a></div>
+    <div class="card"><h3>Debugging guide</h3><p>Systematic checks for spectra, covariance, numerical conditioning, and MCMC issues.</p><a class="btn primary" href="debugging.html">Open page</a></div>
+  </div>
+</div></section>
+</body></html>

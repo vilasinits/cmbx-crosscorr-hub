@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tSZxEuclid — Research Notes</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- vis-network for concept map -->
+<script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+<link  href="https://unpkg.com/vis-network@9.1.9/dist/dist/vis-network.min.css" rel="stylesheet">
+
+<!-- MathJax -->
+<script>
+  MathJax = {
+    tex: {
+      inlineMath: [['$','$'],['\\(','\\)']],
+      displayMath: [['$$','$$'],['\\[','\\]']],
+      tags: 'ams'
+    },
+    options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+<style>
+/* ── Reset & Root ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --hh: 58px;
+
+  /* Dark space palette */
+  --bg:      #0C1520;
+  --bg2:     #101C2C;
+  --panel:   #182334;
+  --panel2:  #1E2E42;
+  --border:  #253650;
+  --border2: #1E2C42;
+
+  --text:    #D8E6F5;
+  --text2:   #A0BAD5;
+  --muted:   #607890;
+
+  /* Accent colours — vibrant for dark bg */
+  --blue:       #5AAEE0;
+  --blue-d:     #3A80BB;
+  --blue-bg:    #0E1C2E;
+  --blue-mid:   #1E3C5A;
+
+  --green:      #4DC87E;
+  --green-d:    #2E8A52;
+  --green-bg:   #081A10;
+  --green-mid:  #143828;
+
+  --amber:      #F0A840;
+  --amber-d:    #B87820;
+  --amber-bg:   #1C1004;
+  --amber-mid:  #3A2408;
+
+  --purple:     #A878E8;
+  --purple-d:   #7850C0;
+  --purple-bg:  #140A24;
+  --purple-mid: #261444;
+
+  --teal:       #38C8D8;
+  --teal-d:     #1E909E;
+  --teal-bg:    #061418;
+  --teal-mid:   #0E2830;
+
+  --red:        #E06070;
+  --red-bg:     #1A0810;
+
+  --hdr:        #070F1A;
+  --hdr-accent: #5AAEE0;
+  --hdr-muted:  rgba(170,200,230,.45);
+  --hdr-text:   rgba(220,235,250,.9);
+
+  --mono: 'Cascadia Code','Fira Code','JetBrains Mono',ui-monospace,monospace;
+  --sans: 'Inter',system-ui,-apple-system,sans-serif;
+  --r:    8px;
+  --r-lg: 12px;
+  --sh:   0 2px 14px rgba(0,0,0,.35);
+  --sh2:  0 4px 24px rgba(0,0,0,.5);
+}
+
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--hh) + 20px); }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.72;
+  padding-top: var(--hh);
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.site-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--hh);
+  background: var(--hdr);
+  border-bottom: 1px solid rgba(90,174,224,.15);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 28px;
+}
+.site-logo {
+  font-weight: 800; font-size: 15px;
+  color: var(--hdr-text); white-space: nowrap; flex-shrink: 0;
+  letter-spacing: -.01em;
+}
+.site-logo em { color: var(--hdr-accent); font-style: normal; }
+
+.site-nav {
+  display: flex; align-items: center; gap: 2px; flex: 1;
+  overflow-x: auto; scrollbar-width: none;
+}
+.site-nav::-webkit-scrollbar { display: none; }
+.site-nav a {
+  color: var(--hdr-muted); text-decoration: none;
+  font-size: 13px; font-weight: 500;
+  padding: 6px 14px; border-radius: 6px;
+  transition: all .15s; white-space: nowrap; flex-shrink: 0;
+}
+.site-nav a:hover,
+.site-nav a.active { color: var(--hdr-text); background: rgba(90,174,224,.12); }
+
+/* ── Sections ────────────────────────────────────────────────────── */
+.section { padding: 68px 0; border-bottom: 1px solid var(--border2); }
+.section:last-child { border-bottom: none; }
+.section:nth-child(odd)  { background: var(--bg); }
+.section:nth-child(even) { background: var(--bg2); }
+
+.container { max-width: 980px; margin: 0 auto; padding: 0 32px; }
+
+/* ── Typography ──────────────────────────────────────────────────── */
+.eyebrow {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--blue); margin-bottom: 6px;
+}
+h2.section-title {
+  font-size: 1.65rem; font-weight: 800;
+  color: var(--text); margin-bottom: 8px; line-height: 1.2;
+}
+.section-sub {
+  color: var(--muted); font-size: .95rem; max-width: 640px; margin-bottom: 36px;
+}
+h3 { font-size: 1.05rem; font-weight: 700; margin: 32px 0 10px; color: var(--text2); }
+h4 { font-size: .9rem;   font-weight: 700; margin: 18px 0 6px;  color: var(--text2); }
+p  { margin-bottom: .85em; }
+a  { color: var(--blue); }
+
+code {
+  font-family: var(--mono); font-size: .8em;
+  background: rgba(90,174,224,.12);
+  padding: 1px 6px; border-radius: 4px; color: var(--blue);
+}
+pre {
+  font-family: var(--mono); font-size: .8em;
+  background: #080E18; color: #B8D0E8;
+  border: 1px solid var(--border);
+  padding: 16px 20px; border-radius: var(--r);
+  overflow-x: auto; line-height: 1.65; margin: 12px 0 18px;
+}
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+/* ── Cards & callouts ────────────────────────────────────────────── */
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 22px 26px;
+  margin: 14px 0; box-shadow: var(--sh);
+}
+.callout {
+  border-left: 3px solid var(--blue); background: var(--blue-bg);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 12px 18px; margin: 12px 0; font-size: .92em;
+}
+.callout.green  { border-color: var(--green);  background: var(--green-bg); }
+.callout.amber  { border-color: var(--amber);  background: var(--amber-bg); }
+.callout.purple { border-color: var(--purple); background: var(--purple-bg); }
+.callout.teal   { border-color: var(--teal);   background: var(--teal-bg); }
+.callout.red    { border-color: var(--red);    background: var(--red-bg); }
+
+/* ── Badges ──────────────────────────────────────────────────────── */
+.badges { display: flex; gap: 7px; flex-wrap: wrap; margin: 14px 0; }
+.badge {
+  display: inline-block; padding: 3px 11px;
+  border-radius: 20px; font-size: .74em; font-weight: 600;
+}
+.b-blue   { background: var(--blue-mid);   color: var(--blue); }
+.b-green  { background: var(--green-mid);  color: var(--green); }
+.b-amber  { background: var(--amber-mid);  color: var(--amber); }
+.b-purple { background: var(--purple-mid); color: var(--purple); }
+.b-teal   { background: var(--teal-mid);   color: var(--teal); }
+.b-gray   { background: rgba(255,255,255,.08); color: var(--text2); }
+
+/* ── Hero ────────────────────────────────────────────────────────── */
+.hero { border-bottom: 1px solid var(--border); margin-bottom: 36px; padding-bottom: 28px; }
+.hero h1 {
+  font-size: 2.5rem; font-weight: 800; line-height: 1.12; margin-bottom: .35em;
+  background: linear-gradient(135deg, var(--text) 40%, var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 20px; }
+
+/* ── Probe grid ──────────────────────────────────────────────────── */
+.probe-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 9px; margin: 14px 0;
+}
+.probe-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px 14px; box-shadow: var(--sh);
+}
+.probe-key { font-family: var(--mono); font-size: .95rem; font-weight: 700; color: var(--blue); margin-bottom: 2px; }
+.probe-name { font-size: .8rem; color: var(--muted); }
+.probe-status { font-size: .72rem; font-weight: 700; margin-top: 5px; }
+.ps-ready  { color: var(--green); }
+.ps-plan   { color: var(--amber); }
+.ps-future { color: var(--muted); }
+
+/* ── Data table ──────────────────────────────────────────────────── */
+table.dtable { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .87em; }
+table.dtable th {
+  background: var(--panel2); color: var(--text);
+  padding: 9px 13px; text-align: left; font-weight: 600;
+  border-bottom: 2px solid var(--blue-mid);
+}
+table.dtable td { padding: 8px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.dtable tr:nth-child(even) td { background: rgba(255,255,255,.025); }
+
+/* ── Concept map container ───────────────────────────────────────── */
+#concept-map {
+  width: 100%; height: 560px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--sh2);
+}
+.map-legend {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  margin-top: 12px; font-size: .8em; color: var(--text2);
+}
+.ml-item { display: flex; align-items: center; gap: 6px; }
+.ml-dot  { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Tab bar ─────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex; gap: 3px; border-bottom: 2px solid var(--border);
+  margin-bottom: 32px; overflow-x: auto; scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 9px 22px; border: none; background: none;
+  font-family: var(--sans); font-size: 13.5px; font-weight: 600;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  transition: all .15s; white-space: nowrap;
+}
+.tab-btn:hover { color: var(--blue); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.tab-panel { display: none; animation: fadeIn .2s ease; }
+.tab-panel.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none; } }
+
+/* ── Module grid ─────────────────────────────────────────────────── */
+.module-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+  gap: 11px; margin: 14px 0;
+}
+.module-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px; box-shadow: var(--sh);
+}
+.module-card h4 { margin: 0 0 3px; font-size: .88rem; color: var(--text); }
+.module-path { font-size: .72em; font-family: var(--mono); color: var(--muted); margin-bottom: 8px; }
+.module-card ul { margin: 0 0 8px 16px; font-size: .8em; color: var(--text2); }
+.module-card li { margin-bottom: 2px; }
+
+/* ── Mermaid ─────────────────────────────────────────────────────── */
+.mermaid-wrap {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px 16px;
+  margin: 16px 0; overflow-x: auto; text-align: center; box-shadow: var(--sh);
+}
+.mermaid-wrap p.cap {
+  font-size: .8em; color: var(--muted); margin: 10px 0 0; text-align: left;
+}
+
+/* ── File tree ───────────────────────────────────────────────────── */
+.file-tree {
+  font-family: var(--mono); font-size: .8em; line-height: 1.9;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px 20px; margin: 12px 0;
+}
+.ft-dir  { color: var(--blue);  font-weight: 600; }
+.ft-note { color: var(--muted); }
+
+/* ── Roadmap cards ───────────────────────────────────────────────── */
+.roadmap { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 13px; margin: 18px 0; }
+.road-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-top: 3px solid var(--blue); border-radius: var(--r);
+  padding: 16px 18px; box-shadow: var(--sh);
+}
+.road-card.green  { border-top-color: var(--green); }
+.road-card.amber  { border-top-color: var(--amber); }
+.road-card.purple { border-top-color: var(--purple); }
+.road-phase {
+  font-size: .7em; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--blue); margin-bottom: 5px;
+}
+.road-card.green  .road-phase { color: var(--green); }
+.road-card.amber  .road-phase { color: var(--amber); }
+.road-card.purple .road-phase { color: var(--purple); }
+.road-card h4 { margin: 0 0 9px; font-size: .92rem; color: var(--text); }
+.road-card ul { margin: 0 0 0 15px; font-size: .82em; color: var(--text2); }
+.road-card li { margin-bottom: 3px; }
+
+/* ── Two-col layout helper ───────────────────────────────────────── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 14px 0; }
+@media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ── Timeline ────────────────────────────────────────────────────── */
+.timeline { position: relative; padding-left: 38px; margin-top: 8px; }
+.timeline::before {
+  content: ''; position: absolute;
+  left: 11px; top: 16px; bottom: 16px;
+  width: 2px; background: linear-gradient(to bottom, var(--blue), transparent);
+}
+.tl-item { position: relative; margin-bottom: 44px; }
+.tl-dot {
+  position: absolute; left: -31px; top: 6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--blue); border: 3px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--blue);
+}
+.tl-dot.done { background: var(--green);  box-shadow: 0 0 0 2px var(--green); }
+.tl-dot.wip  { background: var(--amber);  box-shadow: 0 0 0 2px var(--amber); }
+.tl-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.tl-branch {
+  font-family: var(--mono); font-size: .72em; font-weight: 700;
+  background: var(--blue-mid); color: var(--blue);
+  padding: 2px 9px; border-radius: 4px;
+}
+.tl-branch.green-b { background: var(--green-mid); color: var(--green); }
+.tl-branch.amber-b { background: var(--amber-mid); color: var(--amber); }
+.tl-tag {
+  display: inline-block; padding: 1px 9px; border-radius: 4px;
+  font-size: .7em; font-weight: 700;
+}
+.tt-done { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-mid); }
+.tt-wip  { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-mid); }
+.tl-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+.tl-body  { font-size: .9em; color: var(--text2); }
+.tl-body ul { margin: 6px 0 0 18px; }
+.tl-body li { margin-bottom: 4px; }
+
+/* diff table in tracking */
+.diff-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .84em; }
+.diff-table th {
+  background: var(--panel2); color: var(--text2);
+  padding: 7px 12px; text-align: left; font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.diff-table td { padding: 7px 12px; border-bottom: 1px solid var(--border2); vertical-align: top; }
+.diff-table tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+.cell-old { color: var(--red); }
+.cell-new { color: var(--green); }
+
+/* ── Reference list ──────────────────────────────────────────────── */
+.ref-list { list-style: none; padding: 0; }
+.ref-list li {
+  padding: 10px 0; border-bottom: 1px solid var(--border2);
+  font-size: .87em; display: flex; gap: 12px; align-items: flex-start;
+}
+.ref-list li:last-child { border-bottom: none; }
+.ref-n {
+  font-family: var(--mono); font-size: .77em; font-weight: 700;
+  color: var(--blue); background: var(--blue-bg);
+  padding: 2px 7px; border-radius: 4px; flex-shrink: 0; margin-top: 1px;
+  border: 1px solid var(--blue-mid);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .container { padding: 0 16px; }
+  .hero h1   { font-size: 1.8rem; }
+  h2.section-title { font-size: 1.3rem; }
+  .site-header { padding: 0 16px; gap: 16px; }
+  .site-nav a  { padding: 6px 9px; font-size: 12px; }
+  #concept-map { height: 380px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     HEADER
+     ══════════════════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="site-logo">tSZ<em>×</em>Euclid</div>
+  <nav class="site-nav">
+    <a href="#intro"       class="active">Introduction</a>
+    <a href="#concept-map-sec"           >Concept Map</a>
+    <a href="#tools"                     >Tools</a>
+    <a href="#cloe"                      >cloelib</a>
+    <a href="#endgoal"                   >End Goal</a>
+    <a href="#tracking"                  >Tracking</a>
+    <a href="#references"                >References</a>
+  </nav>
+</header>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     § 1  INTRODUCTION
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="intro">
+<div class="container">
+
+  <div class="hero">
+    <h1>Hot gas in the cosmic web</h1>
+    <p class="hero-sub">
+      Bayesian inference of cosmological parameters from the thermal Sunyaev–Zel'dovich (tSZ) effect
+      cross-correlated with Euclid galaxy clustering and weak lensing.
+      Euclid key project <strong>DR1-KP-CMBX-4</strong>.
+    </p>
+    <div class="badges">
+      <span class="badge b-blue">GODMAX &middot; JAX + NumPyro</span>
+      <span class="badge b-amber">GPU NUTS sampling</span>
+      <span class="badge b-green">Euclid RR2 / Q1</span>
+      <span class="badge b-teal">Planck PR4 &middot; ACT DR6</span>
+      <span class="badge b-purple">KP4 key project</span>
+    </div>
+  </div>
+
+  <!-- 1.1 tSZ physics -->
+  <h3>The thermal Sunyaev–Zel'dovich effect</h3>
+  <p>
+    CMB photons travelling through the hot plasma of galaxy clusters and filaments experience
+    <strong>inverse-Compton scattering</strong> off electrons with temperatures
+    $T_e \sim 10^7$–$10^8\,\text{K}$.
+    The amplitude of the distortion is the <strong>Compton-$y$ parameter</strong>:
+    the line-of-sight integral of electron pressure:
+  </p>
+  <div class="card" style="font-size:.93em;">
+    $$y(\hat{n}) = \frac{\sigma_T}{m_e c^2}\int P_e(\hat{n},\ell)\,d\ell,
+    \qquad P_e = n_e\,k_B T_e$$
+    <p style="margin:.8em 0 0;color:var(--muted);font-size:.86em;">
+      $\sigma_T = 6.65\times10^{-29}\,\text{m}^2$ &ensp;|&ensp;
+      $m_ec^2 = 511\,\text{keV}$ &ensp;|&ensp;
+      Spectral signature: decrement at $\nu\lesssim217\,\text{GHz}$,
+      increment above — <em>redshift-independent in amplitude</em>.
+    </p>
+  </div>
+
+  <!-- 1.2 Why cross-correlate -->
+  <h3>Why cross-correlate with Euclid?</h3>
+  <div class="two-col">
+    <div>
+      <p>
+        tSZ probes <em>hot gas pressure</em> along the line of sight, tracing massive halos.
+        Euclid's <em>galaxy clustering</em> traces the underlying matter distribution via
+        galaxy bias, while <em>weak lensing</em> probes the total projected matter density.
+        Together they break parameter degeneracies:
+      </p>
+      <ul style="margin:0 0 0 18px;font-size:.9em;color:var(--text2);">
+        <li>tSZ $\propto \sigma_8^7\,\Omega_m^2$ — extremely sensitive to structure growth</li>
+        <li>Galaxy clustering $\propto \sigma_8\,b_g$ — constrains bias</li>
+        <li>Weak lensing $\propto \sigma_8\,\Omega_m$ — constrains matter density</li>
+        <li>Cross-correlations cancel uncorrelated noise (CIB, photo-$z$ scatter)</li>
+      </ul>
+    </div>
+    <div>
+      <p>The full KP4 cross-correlation matrix:</p>
+      <table class="dtable">
+        <thead>
+          <tr><th></th><th>GC $(\delta_g)$</th><th>WL $(\kappa)$</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>tSZ $(y)$</strong></td><td>$C_\ell^{yg}$ <span class="badge b-green" style="font-size:.65em;">KP4 ✓</span></td><td>$C_\ell^{y\kappa}$ <span class="badge b-amber" style="font-size:.65em;">planned</span></td></tr>
+          <tr><td>CMB lensing $(\kappa)$</td><td>$C_\ell^{\kappa g}$ <span class="badge b-gray" style="font-size:.65em;">KP2</span></td><td>$C_\ell^{\kappa\kappa}$ <span class="badge b-gray" style="font-size:.65em;">KP3</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 1.3 Implemented probes -->
+  <h3>Probes in GODMAX / tSZxEuclid</h3>
+  <div class="probe-grid">
+    <div class="probe-card"><div class="probe-key">gy</div><div class="probe-name">galaxy &times; tSZ</div><div class="probe-status ps-ready">&#10003; ready</div></div>
+    <div class="probe-card"><div class="probe-key">ky</div><div class="probe-name">CMB lensing &times; tSZ</div><div class="probe-status ps-plan">&#8594; planned</div></div>
+    <div class="probe-card"><div class="probe-key">gg</div><div class="probe-name">galaxy auto</div><div class="probe-status ps-ready">&#10003; ready</div></div>
+    <div class="probe-card"><div class="probe-key">kk</div><div class="probe-name">CMB lensing auto</div><div class="probe-status ps-ready">&#10003; ready</div></div>
+    <div class="probe-card"><div class="probe-key">gk</div><div class="probe-name">galaxy &times; CMB lensing</div><div class="probe-status ps-ready">&#10003; ready</div></div>
+    <div class="probe-card"><div class="probe-key">yy</div><div class="probe-name">tSZ auto-spectrum</div><div class="probe-status ps-plan">&#8594; extract-yy branch</div></div>
+  </div>
+
+  <!-- 1.4 Data -->
+  <h3>Data</h3>
+  <table class="dtable">
+    <thead><tr><th>Dataset</th><th>Type</th><th>Details</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Euclid RR2 v2 / Q1</strong></td><td>Galaxy catalog</td><td>6 tomographic bins, $z\in[0.2,\,1.2]$; RA, Dec, PHZ_MEDIAN</td></tr>
+      <tr><td><strong>Planck PR4 (NILC)</strong></td><td>Compton-$y$ map</td><td>Full-sky, 5 arcmin FWHM, HEALPix $N_{\rm side}=2048$</td></tr>
+      <tr><td><strong>ACT DR6 (neural ILC)</strong></td><td>Compton-$y$ map</td><td>Neural network component separation; suppresses CIB, kSZ and radio contamination</td></tr>
+      <tr><td><strong>ACT DR6 / Planck PR4</strong></td><td>CMB $\kappa$ map</td><td>Used in joint $C_\ell^{yg}+C_\ell^{\kappa g}$ analysis</td></tr>
+    </tbody>
+  </table>
+
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     § 2  CONCEPT MAP
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="concept-map-sec">
+<div class="container">
+
+  <div class="eyebrow">Big picture</div>
+  <h2 class="section-title">Concept Map</h2>
+  <p class="section-sub">
+    Interactive graph of the full analysis pipeline — from raw observations to cosmological constraints.
+    Drag nodes to explore. Colours denote the role of each element.
+  </p>
+
+  <div id="concept-map"></div>
+
+  <div class="map-legend">
+    <div class="ml-item"><div class="ml-dot" style="background:#F0A840"></div> Data &amp; observations</div>
+    <div class="ml-item"><div class="ml-dot" style="background:#5AAEE0"></div> Map processing</div>
+    <div class="ml-item"><div class="ml-dot" style="background:#A878E8"></div> Physical theory</div>
+    <div class="ml-item"><div class="ml-dot" style="background:#4DC87E"></div> Software tools</div>
+    <div class="ml-item"><div class="ml-dot" style="background:#38C8D8"></div> Inference</div>
+    <div class="ml-item"><div class="ml-dot" style="background:#E06070"></div> Results</div>
+  </div>
+
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     § 3  TOOLS
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="tools">
+<div class="container">
+
+  <div class="eyebrow">Codebase</div>
+  <h2 class="section-title">Tools &amp; Codebases</h2>
+  <p class="section-sub">Three interacting repositories power the analysis pipeline.</p>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="dr1cmbx">dr1_cmbx</button>
+    <button class="tab-btn"        data-tab="godmax">GODMAX</button>
+    <button class="tab-btn"        data-tab="tszeuclid">tSZxEuclid</button>
+  </div>
+
+  <!-- ╴╴╴ Tab: dr1_cmbx ╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴ -->
+  <div class="tab-panel active" id="tab-dr1cmbx">
+
+    <div class="callout">
+      <strong>dr1_cmbx</strong> — the Euclid DR1 analysis package for CMB cross-correlations
+      (KP2 / KP3 / KP4). Python 3.11, <code>pip install -e .</code>.
+      Contains the Cobaya likelihood (<code>LikeCobayaPyccl</code>) and the map-level
+      data reduction pipeline.
+    </div>
+
+    <h3>Repository layout</h3>
+    <div class="file-tree">
+<span class="ft-dir">dr1_cmbx/</span><br>
+├── <span class="ft-dir">src/dr1_cmbx/</span><br>
+│   ├── <span class="ft-dir">eDR1like/</span>   <span class="ft-note"># Cobaya likelihood + theory</span><br>
+│   │   ├── likelihood_pyccl.py  <span class="ft-note"># LikeCobayaPyccl — main class (610 lines)</span><br>
+│   │   ├── theory.py            <span class="ft-note"># Theory: pyccl/CAMB tracers → angular Cℓ</span><br>
+│   │   ├── defaults.py          <span class="ft-note"># Planck 2018 baseline parameters</span><br>
+│   │   └── LikeCobayaPyccl.yaml <span class="ft-note"># Default config template (282 lines)</span><br>
+│   └── <span class="ft-dir">eDR1data/</span>   <span class="ft-note"># Data I/O &amp; map processing</span><br>
+│       └── <span class="ft-dir">gctools/</span><br>
+│           ├── maps.py          <span class="ft-note"># Catalog → HEALPix overdensity δ_g</span><br>
+│           └── spectra.py       <span class="ft-note"># NaMaster Cℓ: map2gccls() — already handles y-map input</span><br>
+├── <span class="ft-dir">cobaya/</span>          <span class="ft-note"># YAML configs + SLURM scripts</span><br>
+├── pyproject.toml<br>
+└── environment.yml
+    </div>
+
+    <h3>End-to-end pipeline</h3>
+    <p style="font-size:.9em;color:var(--muted);margin-bottom:14px;">
+      Phase 1 (offline, run once per dataset) prepares the data store.
+      Phase 2 (MCMC, repeated per analysis) performs Bayesian inference.
+    </p>
+
+    <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart LR
+  subgraph phase1["Phase 1 — Data Preparation"]
+    direction TB
+    A1["Euclid catalog\nRA · Dec · z"]:::inp --> B1["cat2map\ncreate overdensity\nHEALPix δ_g"]:::proc
+    A2["n(z) per bin\n(smoothed)"]:::inp --> B1
+    A3["Planck PR4 y-map\nor ACT DR6 y-map"]:::inp --> C1
+    A4["CMB κ-map\n(optional)"]:::inp --> C1
+    B1 --> C1["NaMaster\npseudo-Cℓ\n+ mode coupling"]:::proc
+    C1 --> D1["Data store .pkl\nCl · cov · Bbl · leff · dndz"]:::store
+  end
+  subgraph phase2["Phase 2 — MCMC Inference"]
+    direction TB
+    D2["LikeCobayaPyccl\nload .pkl · build icov"]:::tool --> E2
+    F2["YAML config\ndata_type · lmin · lmax\nprobes · nbins"]:::inp --> D2
+    E2["Theory provider\npyccl or CLASS-SZ\ncompute Cℓ(θ)"]:::theory --> G2["bandpower\ncompression Bbl"]:::proc
+    G2 --> H2["Gaussian log-likelihood\nL = -½ ΔᵀC⁻¹Δ"]:::infer
+    H2 --> I2["Cobaya MCMC\nchains · GetDist"]:::infer
+    I2 --> J2["Posteriors\nσ₈ · Ωm · bg · bHSE"]:::result
+  end
+  D1 --> D2
+
+  classDef inp    fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef theory fill:#140A24,stroke:#A878E8,color:#C8A0F0
+  classDef tool   fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef infer  fill:#061418,stroke:#38C8D8,color:#80D8E8
+  classDef store  fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef result fill:#1A0810,stroke:#E06070,color:#F0A0A8
+</div>
+      <p class="cap">&#9432; <code>map2gccls()</code> already accepts a <code>y</code> dict for the Compton-y map — no modification needed for the data pipeline.</p>
+    </div>
+
+    <h3>Neural CMB y-maps</h3>
+    <div class="two-col">
+      <div class="card" style="margin:0;">
+        <h4 style="color:var(--teal);">Planck PR4 — NILC</h4>
+        <p style="font-size:.88em;color:var(--text2);">
+          Needlet Internal Linear Combination. Classic harmonic-domain component separation.
+          Full-sky, 5 arcmin FWHM, $N_{\rm side}=2048$. Delivered as a standard HEALPix map.
+        </p>
+      </div>
+      <div class="card" style="margin:0;">
+        <h4 style="color:var(--blue);">ACT DR6 — Neural ILC</h4>
+        <p style="font-size:.88em;color:var(--text2);">
+          A neural network learns the optimal frequency weights to separate the tSZ signal,
+          strongly suppressing CIB, kSZ, and radio point-source contamination that would
+          otherwise bias the cross-correlation. Delivered with a frequency-dependent beam
+          transfer function.
+        </p>
+      </div>
+    </div>
+    <p style="margin-top:12px;">Both are input to <code>map2gccls()</code> as:</p>
+    <pre>y = {
+    "exp":  "planck",      # or "act"
+    "map":  y_compton_map, # HEALPix float array
+    "mask": y_mask,        # binary mask (galactic + point sources)
+    "beam": beam_tf        # ell-dependent beam transfer function
+}</pre>
+
+  </div><!-- /tab dr1cmbx -->
+
+
+  <!-- ╴╴╴ Tab: GODMAX ╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴ -->
+  <div class="tab-panel" id="tab-godmax">
+
+    <div class="callout">
+      <strong>GODMAX</strong> — Gas thermODynamics and Matter distribution using jAX.
+      A GPU-accelerated halo model framework for Bayesian inference on angular
+      cross-power spectra. arXiv:<a href="https://arxiv.org/abs/2401.18072" target="_blank">2401.18072</a>.
+      Current branch: <code>refactor-map</code>.
+    </div>
+    <div class="badges">
+      <span class="badge b-blue">JAX &middot; GPU</span>
+      <span class="badge b-purple">NumPyro NUTS</span>
+      <span class="badge b-green">pip install</span>
+      <span class="badge b-gray">refactor-map branch</span>
+    </div>
+
+    <h3>What it does</h3>
+    <p>
+      Baryonic feedback (AGN jets, supernova winds) pushes gas out of halos,
+      suppressing the matter power spectrum by 10–20% at the scales probed by weak lensing.
+      GODMAX models this <em>self-consistently</em> by solving the hydrostatic equilibrium (HSE) ODE
+      — rather than applying a post-hoc fitting function — and derives the electron pressure
+      $P_e(r)$ directly from the coupled density and temperature profiles.
+    </p>
+
+    <h3>Halo model</h3>
+    <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TB
+  subgraph inputs["Inputs"]
+    direction LR
+    P1["Cosmology\nΩm · σ8 · H0"]:::inp
+    P2["Pressure params\nθej · θco · β(M)"]:::inp
+    P3["HOD params\nMmin · M1prime"]:::inp
+    P4["Halo mass fn\nTinker 08"]:::theory
+  end
+  subgraph profiles["Halo Profiles"]
+    direction LR
+    R1["ρ_dmb(r)\ngas + DM + stars"]:::proc
+    R2["HSE ODE\n→ P_tot(r)"]:::proc
+    R3["P_e(r)\nelectron pressure"]:::proc
+    R4["NFW profile\ngalaxy lensing"]:::proc
+    R1 --> R2 --> R3
+  end
+  subgraph pkz["3D Power Spectra P(k,z)"]
+    direction LR
+    Q1["P_mm · P_gm · P_gg"]:::theory
+    Q2["P_ym · P_gy (tSZ)"]:::theory
+  end
+  subgraph angular["Angular Cl (Limber)"]
+    G1["Cl_gg · Cl_kk · Cl_gk"]:::theory
+    G2["Cl_gy · Cl_ky (tSZ)"]:::theory
+    G3["Covariance matrix"]:::theory
+  end
+  inputs --> profiles
+  P4 --> profiles
+  profiles --> pkz
+  pkz --> angular
+
+  classDef inp    fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef theory fill:#140A24,stroke:#A878E8,color:#C8A0F0
+</div>
+      <p class="cap">HSE = hydrostatic equilibrium. The full pressure profile is derived from the gas density profile, not assumed parametrically.</p>
+    </div>
+
+    <h3>Key equations</h3>
+    <p>Total power spectrum = 1-halo (cluster interior) + 2-halo (between clusters):</p>
+    $$P^{AB}_{\rm tot}(k,z) = P^{AB}_{\rm 1h}(k,z) + P^{AB}_{\rm 2h}(k,z)$$
+    <p>The 1-halo term integrates over the halo mass function $dn/dM$ and concentration distribution:</p>
+    $$P^{AB}_{\rm 1h}(k,z) = \int dM\frac{dn}{dM}\int dc\,p(c|M)\;\tilde{u}_A\,\tilde{u}_B$$
+    <p>The tSZ profile in harmonic space (with instrumental beam $b_j$):</p>
+    $$\tilde{u}_y(\ell,z,M) = b_j(\ell)\;\frac{\sigma_T}{m_e c^2}\;
+      \frac{4\pi r_{200c}}{\ell_{200c}^2}
+      \int x^2 P_e(x)\;\frac{\sin(\ell x/\ell_{200c})}{\ell x/\ell_{200c}}\,dx$$
+
+    <h3>Inference with NUTS</h3>
+    <div class="callout purple">
+      GODMAX is differentiable end-to-end via JAX. This enables
+      <strong>Hamiltonian Monte Carlo</strong> (HMC) — which uses gradient information to
+      propose efficient moves in parameter space — and in particular the
+      <strong>NUTS</strong> (No-U-Turn Sampler) variant that adapts trajectory length automatically.
+    </div>
+    <div class="two-col">
+      <div>
+        <h4>Why NUTS for this problem?</h4>
+        <ul style="margin:0 0 0 18px;font-size:.9em;color:var(--text2);">
+          <li>Parameters are correlated: $\sigma_8$, $\Omega_m$, $b_{\rm HSE}$, $P_0$ — HMC handles this natively with a dense mass matrix</li>
+          <li>Gradient computed automatically by JAX autodiff (no finite differences)</li>
+          <li>JIT compilation makes each likelihood call ~1 ms on GPU</li>
+          <li>Multi-chain via <code>jax.pmap</code>: one chain per GPU, zero communication overhead</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Typical NUTS settings</h4>
+        <pre style="margin:0;">kernel = NUTS(
+  model,
+  dense_mass = True,   # full mass matrix
+  max_tree_depth = 10
+)
+mcmc = MCMC(
+  kernel,
+  num_warmup  = 500,
+  num_samples = 1000,
+  num_chains  = 4      # one per GPU via pmap
+)</pre>
+      </div>
+    </div>
+
+    <h3>Class hierarchy</h3>
+    <pre>base_class          # cosmology, grids, integration utilities
+  └─► Profiles       # NFW, GNFW pressure, HOD, DMB gas profile
+        └─► get_Pkz  # 3D power spectra: 1h + 2h via FFTlog
+              ├─► get_Cl   # angular Cℓ via Limber approximation
+              ├─► get_xi   # real-space ξ(θ) via Hankel transform (mcfitjax)
+              └─► get_cov  # Gaussian + 1h non-Gaussian covariance</pre>
+
+    <h3>Power spectra available</h3>
+    <table class="dtable">
+      <thead><tr><th>Probe</th><th>Fields</th><th>Profile</th></tr></thead>
+      <tbody>
+        <tr><td><code>Pmm</code></td><td>matter &times; matter</td><td>NFW or DMB (baryonified)</td></tr>
+        <tr><td><code>Pgm</code></td><td>galaxy &times; matter</td><td>HOD + baryonification</td></tr>
+        <tr><td><code>Pgg</code></td><td>galaxy auto</td><td>HOD: centrals + satellites</td></tr>
+        <tr><td><code>Pym</code></td><td>tSZ &times; matter</td><td>HSE electron pressure</td></tr>
+        <tr><td><code>Pgy</code></td><td>galaxy &times; tSZ</td><td>HOD &times; pressure profile</td></tr>
+        <tr><td><code>Pyy</code></td><td>tSZ auto</td><td>pressure profile (extract-yy branch)</td></tr>
+      </tbody>
+    </table>
+
+  </div><!-- /tab godmax -->
+
+
+  <!-- ╴╴╴ Tab: tSZxEuclid ╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴ -->
+  <div class="tab-panel" id="tab-tszeuclid">
+
+    <div class="callout">
+      <strong>tSZxEuclid</strong> wraps GODMAX for the Euclid &times; Planck/ACT analysis.
+      The GODMAX-interfacing code has been refactored from inline notebooks into a proper
+      Python package: <code>src/tSZxEuclid/godmax/</code>.
+    </div>
+
+    <h3>Package structure</h3>
+    <div class="file-tree">
+<span class="ft-dir">tSZxEuclid/</span><br>
+├── <span class="ft-dir">params_godmax/</span>        <span class="ft-note"># YAML experiment configs (edit freely)</span><br>
+│   ├── params_default.yaml   <span class="ft-note"># base cosmology + halo model defaults</span><br>
+│   ├── <span class="ft-dir">Pge/</span>  params.yaml · priors.yaml<br>
+│   ├── <span class="ft-dir">DESxACT/</span>  params_v0–v3 …<br>
+│   └── <span class="ft-dir">xDESI/</span> · <span class="ft-dir">xCMASS/</span> …<br>
+├── <span class="ft-dir">src/tSZxEuclid/godmax/</span>  <span class="ft-note"># ← new refactored package</span><br>
+│   ├── <span class="ft-dir">config/</span>      loader.py<br>
+│   ├── <span class="ft-dir">surveys/</span>     nz.py<br>
+│   ├── <span class="ft-dir">sampling/</span>    ell.py · model.py · runner.py · io.py<br>
+│   ├── <span class="ft-dir">diagnostics/</span> mcmc.py<br>
+│   └── <span class="ft-dir">plotting/</span>    corner.py<br>
+├── <span class="ft-dir">scripts/python/godmax/</span>  <span class="ft-note"># HPC run scripts</span><br>
+├── <span class="ft-dir">notebooks/godmax/</span>        <span class="ft-note"># Jupyter notebooks (now thin wrappers)</span><br>
+└── <span class="ft-dir">tests/</span>   test_loader · test_ell · test_model · test_io · test_nz
+    </div>
+
+    <h3>MCMC pipeline</h3>
+    <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+  subgraph config["Configuration"]
+    direction LR
+    Y1["params_default.yaml"]:::inp
+    Y2["experiment params\neg Pge/params.yaml"]:::inp
+    Y3["Data/dndz\nn(z) files"]:::inp
+    Y1 --> M1["loader.py\nmerge_params\ndeep YAML merge"]:::tool
+    Y2 --> M1
+    Y3 --> M2["nz.py\nsetup_comoving_nz\nsetup_lens_bins\nsetup_source_bins"]:::tool
+  end
+  subgraph theory["Theory (GODMAX call)"]
+    direction LR
+    M3["ell.py\nsetup_ell_arrays\nlmin=80 lmax=500"]:::tool
+    M4["GODMAX.get_Cl\nhalo model Cl_theory\nshape: Nell x Nbins"]:::godmax
+    M5["GODMAX.get_cov\nGaussian covariance\ncovtot_dict"]:::godmax
+    M3 --> M4
+  end
+  subgraph likelihood["Likelihood assembly"]
+    direction LR
+    M6["model.py\nbuild_bin_combinations\nbuild_data_vector"]:::tool
+    M7["model.py\nfull_cov_matrix\nblock assembly"]:::tool
+    M8["NumPyro MVN\nMultivariateNormal\nlog-likelihood"]:::infer
+    M6 --> M8
+    M7 --> M8
+  end
+  subgraph sampling["Sampling"]
+    M9["runner.py\nrun_pmap_mcmc\nNUTS x jax.pmap"]:::infer
+    M10["io.py\nchain_to_numpy\nsave_chain .pkl"]:::tool
+    M11["diagnostics\nR-hat · PE · divergences"]:::tool
+    M12["plotting\ncorner · trace · autocorr"]:::tool
+    M9 --> M10
+    M10 --> M11
+    M10 --> M12
+  end
+
+  config --> theory
+  M1 --> M4
+  M2 --> M4
+  M4 --> M6
+  M5 --> M7
+  theory --> likelihood
+  M8 --> M9
+
+  classDef inp     fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef tool    fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef godmax  fill:#140A24,stroke:#A878E8,color:#C8A0F0
+  classDef infer   fill:#061418,stroke:#38C8D8,color:#80D8E8
+</div>
+      <p class="cap">Each box maps to a specific module in <code>src/tSZxEuclid/godmax/</code>. The dashed boundary between configuration and theory is where GODMAX is called.</p>
+    </div>
+
+    <h3>Module reference</h3>
+    <div class="module-grid">
+      <div class="module-card">
+        <h4>loader.py</h4>
+        <div class="module-path">config/loader.py</div>
+        <ul>
+          <li><code>read_yaml(path)</code></li>
+          <li><code>merge_params(default, exp)</code></li>
+          <li><code>load_priors(path)</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-green">tested</span><span class="badge b-gray">no deps</span></div>
+      </div>
+      <div class="module-card">
+        <h4>nz.py</h4>
+        <div class="module-path">surveys/nz.py</div>
+        <ul>
+          <li><code>to_comoving_nz(z, nz, cosmo)</code></li>
+          <li><code>setup_comoving_nz(file, cosmo, analysis)</code></li>
+          <li><code>setup_lens_bins(template, nbins, analysis)</code></li>
+          <li><code>setup_source_bins(template, nbins, analysis)</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-green">tested</span><span class="badge b-blue">jax_cosmo</span></div>
+      </div>
+      <div class="module-card">
+        <h4>ell.py</h4>
+        <div class="module-path">sampling/ell.py</div>
+        <ul>
+          <li><code>make_ell_array(lmin, lmax, dl_log)</code></li>
+          <li><code>setup_ell_arrays(analysis, halo)</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-green">tested</span><span class="badge b-blue">numpy+jax</span></div>
+      </div>
+      <div class="module-card">
+        <h4>model.py</h4>
+        <div class="module-path">sampling/model.py</div>
+        <ul>
+          <li><code>build_bin_combinations(probes, Cl)</code></li>
+          <li><code>build_data_vector(cl_obj, combs, nell)</code></li>
+          <li><code>full_cov_matrix(cov, combs, nell)</code></li>
+          <li><code>uniform_prior(name, a, b)</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-green">tested</span><span class="badge b-purple">numpyro</span></div>
+      </div>
+      <div class="module-card">
+        <h4>runner.py</h4>
+        <div class="module-path">sampling/runner.py</div>
+        <ul>
+          <li><code>run_pmap_mcmc(model, warmup, samples, chains, depth, seed)</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-amber">GPU</span><span class="badge b-gray">no unit test</span></div>
+      </div>
+      <div class="module-card">
+        <h4>io.py</h4>
+        <div class="module-path">sampling/io.py</div>
+        <ul>
+          <li><code>chain_to_numpy(trace)</code></li>
+          <li><code>add_run_settings(trace, ...)</code></li>
+          <li><code>save_chain / load_chain</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-green">tested</span><span class="badge b-blue">dill</span></div>
+      </div>
+      <div class="module-card">
+        <h4>diagnostics/mcmc.py</h4>
+        <div class="module-path">diagnostics/</div>
+        <ul>
+          <li><code>analyze_potential_energy</code></li>
+          <li><code>analyze_divergences</code></li>
+          <li><code>run_diagnostics(chain_file)</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-gray">arviz</span></div>
+      </div>
+      <div class="module-card">
+        <h4>plotting/corner.py</h4>
+        <div class="module-path">plotting/</div>
+        <ul>
+          <li><code>plot_covariance_matrix</code></li>
+          <li><code>corner_plot(trace, params)</code></li>
+          <li><code>trace_plots · autocorr_plots</code></li>
+          <li><code>compute_convergence</code></li>
+        </ul>
+        <div class="badges"><span class="badge b-gray">getdist</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tab tszeuclid -->
+
+</div><!-- /container -->
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     § 4  CLOELIB / CLOELIKE
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="cloe">
+<div class="container">
+
+  <div class="eyebrow">Euclid inference stack</div>
+  <h2 class="section-title">cloelib &amp; cloelike</h2>
+  <p class="section-sub">
+    The protocol-based Python stack that converts cosmological parameters into Euclid
+    primary-probe log-likelihoods. Boltzmann solver is swappable at runtime; JAX throughout
+    for automatic differentiation.
+  </p>
+
+  <!-- Intro two-col -->
+  <div class="two-col">
+    <div>
+      <h3>cloelib</h3>
+      <p style="font-size:.9em;color:var(--text2);">
+        Core observable library. Defines Python <strong>Protocols</strong> for
+        <code>Background</code>, <code>Perturbations</code>, and <code>Tracer</code> —
+        CAMB, CLASS, JAX, or a custom emulator are all drop-in replacements.
+        Computes lensing/clustering window functions and angular power spectra $C_\ell$
+        via the Limber approximation using JAX <code>vmap</code> + Simpson integration.
+      </p>
+      <div class="badges">
+        <span class="badge b-blue">Python ≥ 3.10</span>
+        <span class="badge b-purple">JAX · autodiff</span>
+        <span class="badge b-green">hatchling · pre-commit · ruff</span>
+        <span class="badge b-gray">CAMB · CLASS · JAX · CometEFT backends</span>
+      </div>
+    </div>
+    <div>
+      <h3>cloelike</h3>
+      <p style="font-size:.9em;color:var(--text2);">
+        Likelihood layer on top of cloelib. Provides <strong>mixin-based classes</strong>
+        for WL, GCph, GGL (3×2pt), spectroscopic power multipoles $P_\ell(k)$, and BAO.
+        All share the same <code>loglike(params&nbsp;→&nbsp;float)</code> interface and accept any
+        <code>Background</code>/<code>Perturbations</code> implementation satisfying the Protocols.
+      </p>
+      <div class="badges">
+        <span class="badge b-blue">depends on cloelib</span>
+        <span class="badge b-amber">3×2pt · BAO · GCspectro</span>
+        <span class="badge b-teal">χ² = ΔᵀC⁻¹Δ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full API chain Mermaid -->
+  <h3>End-to-end API chain</h3>
+  <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+  subgraph params["Input — cosmological + nuisance parameters dict"]
+    direction LR
+    P1["H0 · Ωcdm · Ωb · As · ns · w0 · wa · mnu · γMG"]:::inp
+    P2["nuisance: AIA · CIA · ηIA · m_bias · dz_shear\nb_poly · dz_pos · log10TAGN"]:::inp
+  end
+
+  subgraph cosmo["cosmology/ — Boltzmann backends (swappable via Protocol)"]
+    direction LR
+    B1["CAMBBackground\n(or CLASSBackground · JAXBackground)"]:::tool
+    B2["CAMBLinearPerturbations\n(or NonLinear · CLASS · JAX)"]:::tool
+    B1 --> B2
+  end
+
+  subgraph tracers["observables/ — Window functions W(z)"]
+    direction LR
+    T1["ShearTracer\nW_γ(z) = lensing kernel × (1+m_bias)\n+ W_IA(z) intrinsic alignment"]:::theory
+    T2["PositionsTracer\nW_G(z) = b(z)·n(z)·H(z)/c\n+ magnification ± RSD"]:::theory
+    T3["SpectroPower Protocol\nPk2d_rsd(k,μ)\n[CometEFT · PBJ · VDG]"]:::theory
+  end
+
+  subgraph stats["summary_statistics/ — Angular power spectra"]
+    direction LR
+    S1["AngularTwoPoint.get_Cl(ells, ks)\nLimber: C_ℓ^ij = c∫W_i W_j P_m / H χ² dz\nJAX vmap over (ℓ,z) grid"]:::proc
+    S2["LegendreMultipoles.power_multipoles(k)\nP_ℓ(k) = (2ℓ+1)/2 ∫P(k,μ) L_ℓ(μ) dμ\nAP correction + photo-z damping"]:::proc
+    S3["C_ℓ dict\n('SHE','SHE',i,j) · ('POS','POS',i,j)\n('POS','SHE',i,j)"]:::store
+    S4["P_ℓ dict per z-bin\n'ell0' · 'ell2' · 'ell4'"]:::store
+    S1 --> S3
+    S2 --> S4
+  end
+
+  subgraph like["cloelike — Log-likelihood"]
+    direction LR
+    L1["EuclidLikelihood_WL\nEuclidLikelihood_GCph\nEuclidLikelihood_3x2pt\n(WLMixin + GCphMixin + GGLMixin)"]:::infer
+    L2["EuclidLikelihood_GCspectro_Pls\nper z-bin: creates SpectroPower\n+ LegendreMultipoles internally"]:::infer
+    L3["loglike(params) → float\n-½ ΔᵀC⁻¹Δ with scale cuts + masking"]:::result
+    L1 --> L3
+    L2 --> L3
+  end
+
+  params --> cosmo
+  B2 --> T1
+  B2 --> T2
+  B2 --> T3
+  T1 --> S1
+  T2 --> S1
+  T3 --> S2
+  S3 --> L1
+  S4 --> L2
+
+  classDef inp    fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef tool   fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef theory fill:#140A24,stroke:#A878E8,color:#C8A0F0
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef store  fill:#101C2C,stroke:#253650,color:#A0BAD5
+  classDef infer  fill:#061418,stroke:#38C8D8,color:#80D8E8
+  classDef result fill:#1A0810,stroke:#E06070,color:#F0A0A8
+</div>
+    <p class="cap">All cosmology backends satisfy the same Protocol — swap CAMB for CLASS or JAX with zero changes to the tracer or likelihood code. The <code>Background</code> class is constructed once per likelihood call; <code>Perturbations</code> computes the matter power spectrum on the redshift grid.</p>
+  </div>
+
+  <!-- Key classes -->
+  <h3>Key classes</h3>
+  <div class="module-grid">
+    <div class="module-card">
+      <h4>Background <span style="font-size:.7em;color:var(--muted);">Protocol</span></h4>
+      <div class="module-path">cosmology/cosmology.py</div>
+      <ul>
+        <li>Static: <code>H0</code> · <code>Omega_b0</code> · <code>As</code> · <code>ns</code> · <code>w0</code> · <code>wa</code></li>
+        <li><code>hubble_parameter(z)</code></li>
+        <li><code>comoving_distance(z)</code></li>
+        <li><code>Omega_m(z)</code> · <code>rdrag</code></li>
+      </ul>
+      <div class="badges"><span class="badge b-gray">CAMB · CLASS · JAX impls</span></div>
+    </div>
+    <div class="module-card">
+      <h4>Perturbations <span style="font-size:.7em;color:var(--muted);">Protocol</span></h4>
+      <div class="module-path">cosmology/cosmology.py</div>
+      <ul>
+        <li><code>background</code> → Background instance</li>
+        <li><code>matter_power_spectrum(z, k)</code></li>
+        <li><code>growth_factor(z, k)</code></li>
+        <li><code>growth_rate(z, k)</code></li>
+        <li><code>sigma8_0()</code></li>
+      </ul>
+      <div class="badges"><span class="badge b-gray">Linear · NonLinear · CLASS · JAX</span></div>
+    </div>
+    <div class="module-card">
+      <h4>ShearTracer</h4>
+      <div class="module-path">observables/photo.py</div>
+      <ul>
+        <li>Weak lensing kernel $W^\gamma_i(z)$</li>
+        <li>Intrinsic alignment $W^{IA}_i(z)$</li>
+        <li>Multiplicative bias $(1+m_i)$</li>
+        <li>Photo-$z$ shift <code>dz_shear_i</code></li>
+        <li><code>get_window(z)</code> → combined $W$</li>
+      </ul>
+      <div class="badges"><span class="badge b-purple">AIA · CIA · ηIA · m_bias</span></div>
+    </div>
+    <div class="module-card">
+      <h4>PositionsTracer</h4>
+      <div class="module-path">observables/photo.py</div>
+      <ul>
+        <li>Galaxy clustering window $W^G_i(z)$</li>
+        <li>Bias: per-bin / polynomial / interpolated</li>
+        <li>Magnification bias</li>
+        <li>Optional RSD correction</li>
+        <li><code>get_window(z)</code> → combined $W$</li>
+      </ul>
+      <div class="badges"><span class="badge b-amber">b_poly · magnification · RSD</span></div>
+    </div>
+    <div class="module-card">
+      <h4>AngularTwoPoint</h4>
+      <div class="module-path">summary_statistics/angular_two_point.py</div>
+      <ul>
+        <li><code>__init__(tracer1, tracer2)</code></li>
+        <li><code>get_Cl(ells, nl, ks)</code></li>
+        <li>Limber on $(\ell, z)$ grid via <code>vmap</code></li>
+        <li>Simpson integration over redshift</li>
+        <li>Returns dict keyed by probe tuples</li>
+      </ul>
+      <div class="badges"><span class="badge b-blue">JAX jit + vmap</span></div>
+    </div>
+    <div class="module-card">
+      <h4>LegendreMultipoles</h4>
+      <div class="module-path">summary_statistics/legendre_multipoles.py</div>
+      <ul>
+        <li><code>power_multipoles(k, ells=[0,2,4])</code></li>
+        <li>2D $P(k,\mu)$ → project onto $L_\ell(\mu)$</li>
+        <li>Alcock-Paczynski correction</li>
+        <li>Photo-$z$ damping $e^{-(k\mu\sigma_r)^2}$</li>
+        <li>Shot noise + EFT counterterms</li>
+      </ul>
+      <div class="badges"><span class="badge b-teal">GCspectro · EFT</span></div>
+    </div>
+    <div class="module-card">
+      <h4>PhotoLikelihoodBase + Mixins</h4>
+      <div class="module-path">EuclidLikelihood_photo_base.py · _Cls.py</div>
+      <ul>
+        <li><code>loglike(params) → float</code></li>
+        <li>Scale cuts via settings dict</li>
+        <li>Masked covariance inversion</li>
+        <li><code>WLMixin · GCphMixin · GGLMixin</code></li>
+        <li><code>EuclidLikelihood_3x2pt</code></li>
+      </ul>
+      <div class="badges"><span class="badge b-teal">WL · GCph · GGL · 3×2pt</span></div>
+    </div>
+    <div class="module-card">
+      <h4>EuclidLikelihood_GCspectro</h4>
+      <div class="module-path">EuclidLikelihood_GCspectro_Pls.py</div>
+      <ul>
+        <li><code>loglike(params) → float</code></li>
+        <li>Creates SpectroPower per $z$-bin internally</li>
+        <li>Multipoles $\ell \in \{0, 2, 4\}$</li>
+        <li>Analytical marginalisation priors</li>
+      </ul>
+      <div class="badges"><span class="badge b-amber">EFT · shot noise · photo-z err</span></div>
+    </div>
+  </div>
+
+  <!-- Data structures -->
+  <h3>Key data structures</h3>
+  <div class="two-col">
+    <div>
+      <h4>Cosmological parameters dict</h4>
+      <pre style="font-size:.74em;margin:0;"># Background cosmology
+params = {
+  "H0": 70.,        "Omega_cdm0": 0.25,
+  "Omega_b0": 0.05, "Omega_k0": 0.,
+  "As": 2e-9,       "ns": 0.96,
+  "w0": -1.,        "wa": 0.,
+  "mnu": 0.06,      "N_mnu": 1,
+  "gamma_MG": 0.545,
+
+  # WL nuisance (index i per shear bin)
+  "AIA": 0.1,  "CIA": 0.0134,  "EtaIA": 0.,
+  "multiplicative_bias_1": 0.,
+  "dz_shear_1": 0.,  # ... per bin
+
+  # GCph nuisance
+  "b1_photo_poly0": 1.2,
+  "b1_photo_poly1": 0.,
+  "dz_pos_1": 0.,   # ... per bin
+
+  # Non-linear (HMCode AGN)
+  "log10TAGN": 7.8,
+}</pre>
+    </div>
+    <div>
+      <h4>C_ℓ output dict &amp; typical usage</h4>
+      <pre style="font-size:.74em;margin:0;"># AngularTwoPoint output
+cls = {
+  ("SHE","SHE", i, j): array[n_ell],
+  # all WL auto + cross pairs (i≤j)
+  ("POS","POS", i, j): array[n_ell],
+  # all GCph auto + cross pairs
+  ("POS","SHE", i, j): array[2, n_ell],
+  # GGL — 2 for E/B modes
+}
+
+# Spectroscopic output (per z-bin)
+pls = {
+  "ell0": array[n_k],  # P_0(k)
+  "ell2": array[n_k],  # P_2(k)
+  "ell4": array[n_k],  # P_4(k)
+}
+
+# Minimal photometric usage
+bg   = CAMBBackground(**cosmo_params)
+pert = CAMBNonLinearPerturbations(bg, zs)
+she  = ShearTracer(pert, dndz, zs, nuisance)
+pos  = PositionsTracer(pert, dndz, zs,
+         "poly", nuisance)
+cls  = AngularTwoPoint(she, she).get_Cl(
+         ells, nl=0, ks=ks)</pre>
+    </div>
+  </div>
+
+  <!-- Limber formula callout -->
+  <div class="card" style="font-size:.93em;margin-top:8px;">
+    $$C_\ell^{ij} = \frac{c}{H_0}\int_0^{z_{\max}} dz\;
+      \frac{W_i(z)\,W_j(z)}{H(z)\,\chi^2(z)}\;
+      P_m\!\left(\frac{\ell+\tfrac12}{\chi(z)},\,z\right)$$
+    <p style="margin:.7em 0 0;color:var(--muted);font-size:.85em;">
+      Implemented as <code>jax.vmap</code> over the $(\ell, z)$ grid + Simpson weights.
+      Key: $k_\ell(z) = (\ell + 0.5)/\chi(z)$ — the Limber wavenumber.
+    </p>
+  </div>
+
+  <!-- Relevance for tSZ -->
+  <h3>Relevance for GODMAX tSZ likelihood in dr1_cmbx</h3>
+  <div class="callout teal">
+    The cloelib/cloelike pattern is the blueprint for implementing a GODMAX-based tSZ likelihood
+    in <code>dr1_cmbx</code>. The table below maps each cloelib concept to its GODMAX counterpart
+    and identifies what actually needs to be built.
+  </div>
+
+  <table class="dtable" style="margin-top:14px;">
+    <thead><tr><th>cloelib concept</th><th>GODMAX / dr1_cmbx equivalent</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>Background</code> Protocol</td>
+        <td>GODMAX <code>base_class</code> already provides $H(z)$, $\chi(z)$, $\Omega_m$ via <code>jax_cosmo</code></td>
+        <td style="color:var(--green);">&#10003; No adapter needed — pass cosmo params directly to GODMAX YAML dicts</td>
+      </tr>
+      <tr>
+        <td><code>Perturbations.matter_power_spectrum(z,k)</code></td>
+        <td>GODMAX symbolic $P_{\rm lin}(k,z)$ in <code>matter_pk_symbolic.py</code> — differentiable, no CAMB call in loop</td>
+        <td style="color:var(--green);">&#10003; Already differentiable for NUTS gradient computation</td>
+      </tr>
+      <tr>
+        <td><code>ShearTracer</code> / <code>PositionsTracer</code> window functions</td>
+        <td>GODMAX computes all window functions internally. tSZ window: $W_y = \sigma_T/(m_ec^2) \cdot P_e(r)$ from HSE profile — not a galaxy $n(z)$</td>
+        <td style="color:var(--amber);">&#8594; Do not replicate in cloelib. Feed GODMAX $C_\ell^{gy}$, $C_\ell^{ky}$ directly to likelihood</td>
+      </tr>
+      <tr>
+        <td><code>AngularTwoPoint.get_Cl()</code></td>
+        <td>GODMAX <code>get_Cls.py</code> — same Limber integral but tSZ uses GNFW/HSE profile instead of tracer $W(z)$</td>
+        <td style="color:var(--green);">&#10003; Already computes $C_\ell^{gy}$, $C_\ell^{ky}$ — access via <code>get_Cl.Cl_gy</code></td>
+      </tr>
+      <tr>
+        <td><code>PhotoLikelihoodBase.loglike()</code></td>
+        <td><code>LikeCobayaSZ</code> (CLASS-SZ path) or NumPyro <code>MultivariateNormal</code> (GODMAX/NUTS path)</td>
+        <td style="color:var(--red);">&#10007; Must implement — $\chi^2 = \Delta^T C^{-1}\Delta$ where $\Delta = B_{b\ell}(C_\ell^{\rm th} - C_\ell^{\rm data})$</td>
+      </tr>
+      <tr>
+        <td>Mixin probe selection (<code>WLMixin</code>, etc.)</td>
+        <td>New <code>tSZMixin</code> or standalone <code>tSZLikelihood</code> class extracting probe keys <code>('tSZ','POS',i,j)</code></td>
+        <td style="color:var(--red);">&#10007; Must implement — applies bandpower window matrix $B_{b\ell}$ from NaMaster .pkl</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout amber" style="margin-top:16px;">
+    <strong>Key architectural difference:</strong>
+    Standard Euclid probes (WL, GCph) flow through <em>cloelib tracers → AngularTwoPoint</em>.
+    The tSZ probe bypasses this entirely — GODMAX directly outputs $C_\ell^{gy}$ and $C_\ell^{ky}$
+    from its halo model. The likelihood layer ($\chi^2$ + bandpower binning) is the only cloelike
+    concept that needs to be replicated for the tSZ case.
+  </div>
+
+  <!-- ── Likelihood flowcharts ─────────────────────────────────── -->
+  <h3 style="margin-top:32px;">Likelihood internals — per-class flow</h3>
+  <p style="font-size:.9em;color:var(--muted);margin-bottom:18px;">
+    All three types share the same formula: <code>loglike = −½ Δᵀ C⁻¹ Δ</code>.
+    The differences are entirely in how the <em>theory vector</em> is constructed.
+    Understanding these patterns is the direct blueprint for <code>EuclidLikelihood_tSZ</code>.
+  </p>
+
+  <!-- BAO -->
+  <h4 style="margin-bottom:8px;">1 · EuclidLikelihood_BAO &nbsp;<span style="font-size:.75em;color:var(--muted);font-weight:400;">— simplest, no perturbations needed</span></h4>
+  <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+  P["parameters dict\nH0 · Ωcdm · Ωb · As · ns · ..."]:::inp
+  BG["Background(params)\n→ comoving_distance(z) · rdrag · H(z)"]:::tool
+  BAO["BaryonAcousticOscillations(background)\n→ alphas_dict per effective z\nα∥ = DH(zeff)/rd  ·  α⊥ = DM(zeff)/rd"]:::theory
+  TV["theory_vector\nconcatenate [DM/rd, DH/rd] over z-bins"]:::proc
+  DATA["data_vector\nobserved [DM/rd, DH/rd]"]:::store
+  COV["inverse_covariance C⁻¹"]:::store
+  DIFF["Δ = theory_vector − data_vector"]:::proc
+  LOG["loglike = −½ Δᵀ C⁻¹ Δ"]:::result
+
+  P --> BG --> BAO --> TV --> DIFF --> LOG
+  DATA --> DIFF
+  COV --> LOG
+
+  classDef inp    fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef tool   fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef theory fill:#140A24,stroke:#A878E8,color:#C8A0F0
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef store  fill:#101C2C,stroke:#253650,color:#A0BAD5
+  classDef result fill:#1A0810,stroke:#E06070,color:#F0A0A8
+</div>
+    <p class="cap">No <code>Perturbations</code> object needed. <code>Background</code> alone gives the sound horizon $r_d$ and comoving distances. <code>BaryonAcousticOscillations</code> is instantiated from the background, not passed as a constructor — there is no theory-class injection here.</p>
+  </div>
+
+  <!-- GCspectro -->
+  <h4 style="margin-bottom:8px;">2 · EuclidLikelihood_GCspectro_Pls &nbsp;<span style="font-size:.75em;color:var(--muted);font-weight:400;">— theory-class injection pattern (blueprint for tSZ)</span></h4>
+  <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+  subgraph INIT["__init__  ─  called once at startup"]
+    direction LR
+    BG_C["Background class ref"]:::tool
+    SP_C["SpectroPower class ref\ne.g. CometEFT · PBJ · VDG"]:::tool
+    DATA_G["data dict\n{z: {pk0, pk2, pk4, k, cov}}"]:::store
+    AM["AM_priors (optional)"]:::inp
+  end
+
+  P["parameters dict\nH0 · Ωcdm · σ8 · fsigma8 · b_i · σv · ..."]:::inp
+  BG["Background(params)\n→ H(z) · chi(z) · rdrag · fAP"]:::tool
+  SP["SpectroPower(background, RSD_params, z)\ninstantiated per z-bin each MCMC step"]:::theory
+  LEG["LegendreMultipoles(power, AP_params, k_grid)\n.power_multipoles(k)\n→ P_ell0(k) · P_ell2(k) · P_ell4(k)"]:::proc
+  FLAT["concatenate multipoles over z-bins\n→ theory_vector"]:::proc
+  MASK["apply k-cuts per bin\n(k_min / k_max scale cuts)"]:::proc
+  DIFF["Δ = theory − data (masked)"]:::proc
+  LOG["loglike = −½ Δᵀ C⁻¹ Δ"]:::result
+
+  BG_C -.->|class ref| BG
+  SP_C -.->|class ref| SP
+  P --> BG --> SP --> LEG --> FLAT --> MASK --> DIFF --> LOG
+  DATA_G --> DIFF
+
+  classDef inp    fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef tool   fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef theory fill:#140A24,stroke:#A878E8,color:#C8A0F0
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef store  fill:#101C2C,stroke:#253650,color:#A0BAD5
+  classDef result fill:#1A0810,stroke:#E06070,color:#F0A0A8
+</div>
+    <p class="cap">
+      The <strong>theory-class injection pattern</strong>: both <code>Background</code> and <code>SpectroPower</code> are passed as class constructors at <code>__init__</code> time and instantiated fresh on every <code>get_theory_vector(params)</code> call. This keeps the likelihood stateless and JAX-traceable.
+      <br><strong>For tSZ</strong>: replace <code>SpectroPower</code> with <code>GODMAXtSZPower</code> — a thin wrapper that translates the flat parameter dict into GODMAX's four YAML dicts and returns <code>Cl_gy</code>, <code>Cl_ky</code>.
+    </p>
+  </div>
+
+  <!-- photo_Cls -->
+  <h4 style="margin-bottom:8px;">3 · EuclidLikelihood_photo_Cls &nbsp;<span style="font-size:.75em;color:var(--muted);font-weight:400;">— mixin pattern, three constructor classes</span></h4>
+  <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+  subgraph INIT["__init__  ─  called once at startup"]
+    direction LR
+    BG_C["Background class ref"]:::tool
+    LP_C["LinPerturbations class ref"]:::tool
+    NLP_C["NonLinPerturbations class ref"]:::tool
+    DATA_P["data dict\n{(probe, i, j): Cl array}"]:::store
+    ELLS["ells_integration grid"]:::inp
+  end
+
+  P["parameters dict\nH0 · As · ns · AIA · CIA · ηIA · b_i · m_i · dz · TAGN · ..."]:::inp
+  BG["Background(params)"]:::tool
+  LP["LinPerturbations(params)"]:::tool
+  NLP["NonLinPerturbations(params)\n+ baryon feedback TAGN (HMCode2020)"]:::tool
+  T1["ShearTracer(BG, NLP)\nW_γ(z) = lensing kernel × (1+m_bias)\n+ W_IA(z) NLA/TATT correction"]:::theory
+  T2["PositionsTracer(BG, LP)\nW_G(z) = b(z)·n(z)·H(z)/c\n+ magnification bias · photo-z shift dz"]:::theory
+  ATP["AngularTwoPoint.get_Cl(ells, ks)\nLimber: C_ℓ^ij = ∫ W_i W_j P_m / (H χ²) dz\njax.vmap over (ℓ, z) grid · Simpson weights"]:::proc
+  CLD["C_ℓ dict keyed by probe pair\n(SHE,SHE,i,j) · (POS,POS,i,j) · (POS,SHE,i,j)"]:::proc
+  MIXIN["Mixin probe selection\nWLMixin → SHE pairs only\nGCphMixin → POS pairs only\nGGLMixin → cross pairs\n3×2pt = all three mixed in"]:::proc
+  MASK["get_theory_vector_masked()\napply ℓ-cuts · flatten to 1-D"]:::proc
+  DIFF["Δ = theory − data (masked)"]:::proc
+  LOG["loglike = −½ Δᵀ C⁻¹ Δ"]:::result
+
+  BG_C -.->|class ref| BG
+  LP_C -.->|class ref| LP
+  NLP_C -.->|class ref| NLP
+  P --> BG & LP & NLP
+  BG --> T1 & T2 & ATP
+  LP --> T2
+  NLP --> T1 & ATP
+  T1 & T2 --> ATP --> CLD --> MIXIN --> MASK --> DIFF --> LOG
+  DATA_P --> DIFF
+
+  classDef inp    fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef tool   fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef theory fill:#140A24,stroke:#A878E8,color:#C8A0F0
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef store  fill:#101C2C,stroke:#253650,color:#A0BAD5
+  classDef result fill:#1A0810,stroke:#E06070,color:#F0A0A8
+</div>
+    <p class="cap">
+      The <strong>mixin pattern</strong>: probe selection is baked into the class hierarchy rather than a runtime flag. The three constructor classes (<code>Background</code>, <code>LinPerturbations</code>, <code>NonLinPerturbations</code>) are protocol-typed — any compliant backend (CAMB, CLASS, JAX) works.
+      <br><strong>For tSZ</strong>: this pattern is <em>not</em> used. GODMAX already handles window functions and the Limber integral internally, so there is no need for <code>ShearTracer</code>, <code>PositionsTracer</code>, or <code>AngularTwoPoint</code>.
+    </p>
+  </div>
+
+  <div class="callout teal" style="margin-top:8px;">
+    <strong>Common pattern across all three:</strong>
+    Theory objects are never held as state — they are constructed fresh from the parameter dict each call.
+    The likelihood class itself is stateless between MCMC steps, which makes it safe to <code>jit</code> and <code>vmap</code> over chains.
+  </div>
+
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     § 5  END GOAL
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="endgoal">
+<div class="container">
+
+  <div class="eyebrow">Game plan</div>
+  <h2 class="section-title">End Goal &amp; Implementation Plan</h2>
+  <p class="section-sub">
+    Implement a tSZ cross-correlation likelihood in cloelike using GODMAX as the theory engine,
+    validate with NUTS, then run in the Euclid pipeline with Cobaya.
+  </p>
+
+  <!-- The full corrected picture -->
+  <h3>The full picture</h3>
+  <p>Four layers, each a distinct tool:</p>
+
+  <table class="dtable">
+    <thead><tr><th>Layer</th><th>Tool</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Sampler</strong></td>
+        <td>NumPyro NUTS <em>or</em> Cobaya</td>
+        <td>Proposes parameter values $\theta$, accepts/rejects steps, builds the posterior chain</td>
+      </tr>
+      <tr>
+        <td><strong>Likelihood</strong></td>
+        <td><strong>cloelike</strong> — new <code>EuclidLikelihood_tSZ</code> class</td>
+        <td>Given $\theta$: calls GODMAX, applies $B_{b\ell}$, returns $-\frac{1}{2}\Delta^T C^{-1}\Delta$. Same <code>loglike(params)</code> interface as all other cloelike classes</td>
+      </tr>
+      <tr>
+        <td><strong>Theory</strong></td>
+        <td><strong>GODMAX</strong></td>
+        <td>Computes $C_\ell^{yg}(\theta)$ from cosmological + baryonic feedback parameters via the halo model</td>
+      </tr>
+      <tr>
+        <td><strong>Data</strong></td>
+        <td>dr1_cmbx <code>.pkl</code></td>
+        <td>Measured bandpowers $\hat{C}_b^{yg}$, covariance $C_{bb'}$, bandpower window matrix $B_{b\ell}$ from NaMaster</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout teal" style="margin-top:2px;">
+    <strong>Why cloelike for the likelihood?</strong>
+    cloelike is the standard Euclid likelihood interface. Every probe — WL, BAO, GCspectro —
+    is a cloelike class with the same <code>loglike(params)</code> signature.
+    If <code>EuclidLikelihood_tSZ</code> follows the same pattern, the joint analysis is just:
+    <code>logL = EuclidLikelihood_tSZ.loglike(params) + EuclidLikelihood_3x2pt.loglike(params) + …</code>
+    — no glue code needed.
+  </div>
+
+  <!-- What it means -->
+  <h3>What "implementing the tSZ likelihood" actually means</h3>
+  <p>
+    You already have the <strong>data side</strong>: measured bandpowers
+    $\hat{C}_b^{yg}$, covariance $C_{bb'}$, and bandpower window matrices $B_{b\ell}$ — all
+    produced by NaMaster and stored in a <code>.pkl</code> file via the existing dr1_cmbx
+    data pipeline. The <strong>missing piece</strong> is <code>EuclidLikelihood_tSZ</code>:
+    a cloelike class that calls GODMAX, compresses the output to bandpowers, and returns
+    $-\frac{1}{2}\Delta^T C^{-1}\Delta$.
+  </p>
+
+  <!-- Probe status table -->
+  <h3>Probe status</h3>
+  <table class="dtable">
+    <thead><tr><th>Probe</th><th>Data in .pkl</th><th>Theory provider</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>$C_\ell^{gg}$</td><td>&#10003; yes</td><td>pyccl <code>NumberCountsTracer</code></td><td style="color:var(--green);">&#10003; working</td></tr>
+      <tr><td>$C_\ell^{\kappa\kappa}$</td><td>&#10003; yes</td><td>pyccl <code>CMBLensingTracer</code></td><td style="color:var(--green);">&#10003; working</td></tr>
+      <tr><td>$C_\ell^{g\kappa}$</td><td>&#10003; yes</td><td>pyccl cross</td><td style="color:var(--green);">&#10003; working</td></tr>
+      <tr><td>$C_\ell^{yg}$</td><td>&#10003; <code>map2gccls()</code> ready</td><td>GODMAX <code>get_Cl.Cl_gy</code></td><td style="color:var(--red);">&#10007; likelihood class missing</td></tr>
+      <tr><td>$C_\ell^{y\kappa}$</td><td>&#10003; <code>map2gccls()</code> ready</td><td>GODMAX <code>get_Cl.Cl_ky</code></td><td style="color:var(--red);">&#10007; likelihood class missing</td></tr>
+    </tbody>
+  </table>
+
+  <!-- After GODMAX: the critical pipeline -->
+  <h3>After GODMAX gives you $C_\ell^{yg}$ — the missing steps</h3>
+  <p style="font-size:.9em;color:var(--text2);margin-bottom:14px;">
+    GODMAX outputs a theory power spectrum array. Everything below is what still needs to happen
+    before you have a log-likelihood number. This is the entire likelihood class.
+  </p>
+
+  <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+  G["GODMAX get_Cl\noutput: Cl_gy array\nshape (n_ell_godmax, n_bins)"]:::tool
+
+  subgraph compress["Bandpower compression  —  done once, then just a matrix multiply"]
+    direction TB
+    I["Interpolate onto data ell grid\nor ensure GODMAX ells match leff from .pkl\n(log-spaced ell array must cover same range)"]:::proc
+    B["Apply NaMaster bandpower window\nC_b^th = B_bl @ C_ell_th\nB_bl shape: (n_bandpowers, n_ells)\nfrom .pkl → cls[probe][Bbl]"]:::proc
+    I --> B
+  end
+
+  subgraph datavec["Data vector assembly  —  per tomographic bin combination"]
+    direction TB
+    S["Stack all bin combinations\ne.g. yg_bin0, yg_bin1, …, yg_bin5\ninto flat vector C_b^th of length (n_bins × n_bp)"]:::proc
+    M["Apply scale cuts mask\nbpmin ≤ b ≤ bpmax per probe\n(lmin, lmax from YAML config)"]:::proc
+    S --> M
+  end
+
+  subgraph chi2["Log-likelihood"]
+    direction TB
+    D["Δ_b = C_b^th − C_b^data\n(both masked to same indices)"]:::proc
+    X["χ² = Δᵀ C⁻¹ Δ\nC⁻¹ precomputed in initialize()\nfrom .pkl → cov"]:::infer
+    L["log𝓛 = −½ χ²\nreturn to sampler"]:::result
+    D --> X --> L
+  end
+
+  G --> compress
+  compress --> datavec
+  datavec --> chi2
+
+  classDef tool   fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef infer  fill:#061418,stroke:#38C8D8,color:#80D8E8
+  classDef result fill:#1A0810,stroke:#E06070,color:#F0A0A8
+</div>
+    <p class="cap">
+      The dr1_cmbx <code>LikeCobayaPyccl.logp()</code> already does all of this for the existing probes
+      (see <code>_get_bps_vec()</code> in <code>likelihood_pyccl.py:458</code>).
+      The tSZ likelihood class is structurally identical — just GODMAX replaces pyccl as the theory engine.
+    </p>
+  </div>
+
+  <!-- The ell grid problem -->
+  <div class="callout amber">
+    <strong>The ell-grid matching problem.</strong>
+    GODMAX uses its own internal log-spaced ell array (set via <code>halo_params</code>, e.g. $\ell \in [11, 8972]$, 30 pts).
+    The NaMaster measurement has <code>leff</code> bandpower centres from the .pkl.
+    These two grids will not match. The fix: evaluate GODMAX on a <em>finer</em> ell array that
+    covers the full measurement range, then let $B_{b\ell}$ compress it — $B_{b\ell}$ is already
+    designed to handle this. Check that GODMAX's ell range fully covers the measurement range before applying $B_{b\ell}$.
+  </div>
+
+  <!-- Architecture diagram -->
+  <h3>Architecture</h3>
+  <div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+  subgraph sampler["Sampler  —  NUTS or Cobaya (see below)"]
+    P["Propose θ: Ωm · σ8 · H0 · θej · HOD · bHSE · bg · Δz"]:::inp
+  end
+
+  subgraph cloelike["cloelike  —  EuclidLikelihood_tSZ  (new class to write)"]
+    direction TB
+    CL1["initialize():\nload .pkl · precompute C⁻¹ · store Bbl"]:::proc
+    CL2["loglike(θ):\n1. call GODMAX → Cl_gy(θ)\n2. Bbl @ Cl_theory  →  bandpowers\n3. stack bin combinations, apply scale cuts\n4. return  −½ ΔᵀC⁻¹Δ"]:::infer
+    CL1 -.once.- CL2
+  end
+
+  subgraph godmax["GODMAX  —  theory engine"]
+    G["base_class → Profiles\n→ get_Pkz → get_Cl\nCl_gy · Cl_ky"]:::tool
+  end
+
+  subgraph data["dr1_cmbx .pkl  —  data"]
+    D["ĈB_yg · Bbl · cov · dndz\n(from NaMaster map2gccls)"]:::store
+  end
+
+  P --> CL2
+  CL2 --> G
+  G --> CL2
+  data --> CL1
+  CL2 --> posterior["logL → sampler\n→ posterior chains"]:::result
+
+  classDef inp    fill:#3A2408,stroke:#F0A840,color:#F0D090
+  classDef proc   fill:#0E1C2E,stroke:#5AAEE0,color:#90C8F0
+  classDef infer  fill:#061418,stroke:#38C8D8,color:#80D8E8
+  classDef tool   fill:#143828,stroke:#4DC87E,color:#90E0B0
+  classDef store  fill:#101C2C,stroke:#253650,color:#A0BAD5
+  classDef result fill:#1A0810,stroke:#E06070,color:#F0A0A8
+</div>
+    <p class="cap">
+      cloelike is the <em>likelihood layer</em> — it owns the data loading, bandpower compression,
+      and chi². GODMAX is called inside <code>loglike()</code> as a pure function.
+      The sampler sits outside and only sees <code>loglike(params) → float</code>.
+    </p>
+  </div>
+
+  <!-- Sampler choice -->
+  <h3>Sampler: NUTS or Cobaya — both work, different trade-offs</h3>
+  <p style="font-size:.9em;color:var(--text2);margin-bottom:14px;">
+    Because <code>EuclidLikelihood_tSZ.loglike()</code> is just a Python function returning a float,
+    any sampler can call it. The choice affects speed and pipeline compatibility, not the likelihood itself.
+  </p>
+
+  <table class="dtable">
+    <thead><tr><th></th><th>NumPyro NUTS</th><th>Cobaya (MH)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>How it calls the likelihood</strong></td>
+        <td>Differentiates through <code>loglike()</code> via JAX autodiff to get $\nabla_\theta \log\mathcal{L}$</td>
+        <td>Calls <code>loglike()</code> as a black box — no gradients, just the float</td></tr>
+      <tr><td><strong>Speed</strong></td>
+        <td>~100× fewer likelihood evaluations to converge; GPU-accelerated</td>
+        <td>Slower — Metropolis-Hastings random walk, no gradient information</td></tr>
+      <tr><td><strong>Requires JAX throughout</strong></td>
+        <td>Yes — GODMAX + Bbl + chi² must all be JAX ops</td>
+        <td>No — GODMAX can be called as plain Python, chi² as NumPy</td></tr>
+      <tr><td><strong>Output format</strong></td>
+        <td>NumPyro trace object → convert to numpy / arviz</td>
+        <td>Standard Cobaya chains → GetDist, Euclid pipeline-compatible</td></tr>
+      <tr><td><strong>Good for</strong></td>
+        <td>Validation, mock recovery, fast iteration</td>
+        <td>Official Euclid production runs, combining with other Cobaya likelihoods</td></tr>
+      <tr><td><strong>Joint with other cloelike probes</strong></td>
+        <td><code>logL = L_tSZ.loglike(θ) + L_3x2pt.loglike(θ)</code> in one NumPyro model</td>
+        <td>Wrap each cloelike class in a thin <code>cobaya.Likelihood</code> subclass, combine in one YAML</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Implementation roadmap -->
+  <h3>Implementation roadmap</h3>
+  <div class="roadmap" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr));margin-top:14px;">
+    <div class="road-card">
+      <div class="road-phase">Phase 0 — Data</div>
+      <h4>Produce the tSZ .pkl</h4>
+      <ul>
+        <li>Run <code>map2gccls()</code>: Euclid × Planck/ACT y-map</li>
+        <li>Output: <code>{cls: {"yg_bin_i": {cl, Bbl, leff}}, cov, dndz}</code></li>
+        <li>Set GODMAX ell range to cover the measurement $\ell_{\rm eff}$ array</li>
+        <li>Single tomographic bin first</li>
+      </ul>
+    </div>
+    <div class="road-card green">
+      <div class="road-phase">Phase 1 — Write cloelike class</div>
+      <h4><code>EuclidLikelihood_tSZ</code></h4>
+      <ul>
+        <li>New class in cloelike following the same pattern as <code>PhotoLikelihoodBase</code></li>
+        <li><code>__init__</code>: load .pkl, precompute $C^{-1}$, store $B_{b\ell}$</li>
+        <li><code>loglike(params)</code>: GODMAX → $B_{b\ell}$ → $-\frac{1}{2}\chi^2$</li>
+        <li>Test: call with fiducial params, check output is a finite float</li>
+      </ul>
+    </div>
+    <div class="road-card amber">
+      <div class="road-phase">Phase 2 — Validate with NUTS</div>
+      <h4>Mock recovery</h4>
+      <ul>
+        <li>Generate mock $\hat{C}_b^{yg}$ from GODMAX at fiducial $\theta_{\rm fid}$</li>
+        <li>Wrap <code>EuclidLikelihood_tSZ.loglike</code> in a NumPyro model</li>
+        <li>Free params: $\sigma_8$, $\Omega_m$, one baryonic ($\theta_{ej}$ or $P_0$)</li>
+        <li>Run NUTS, verify posteriors recover $\theta_{\rm fid}$</li>
+        <li>Null test: shuffled y-map → $\chi^2 \approx N_{\rm dof}$</li>
+      </ul>
+    </div>
+    <div class="road-card purple">
+      <div class="road-phase">Phase 3 — Cobaya wrapper + joint run</div>
+      <h4>Euclid production</h4>
+      <ul>
+        <li>Thin <code>cobaya.Likelihood</code> wrapper around <code>EuclidLikelihood_tSZ</code></li>
+        <li>Combine with existing probes in one Cobaya YAML</li>
+        <li>Shared cosmological params; GODMAX-only baryonic params</li>
+        <li>Output: Cobaya chains → GetDist posteriors</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Files to create -->
+  <h3>Files to create</h3>
+  <table class="dtable">
+    <thead><tr><th>File</th><th>Action</th><th>Phase</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>cloelike/EuclidLikelihood_tSZ.py</code></td>
+        <td><strong>Create</strong> — new cloelike class with <code>loglike(params)</code>; calls GODMAX internally</td>
+        <td style="color:var(--green);">Phase 1</td>
+      </tr>
+      <tr>
+        <td><code>cloelike/tests/test_EuclidLikelihood_tSZ.py</code></td>
+        <td><strong>Create</strong> — unit test: fiducial params → finite loglike; follows cloelike test pattern</td>
+        <td style="color:var(--green);">Phase 1</td>
+      </tr>
+      <tr>
+        <td><code>tSZxEuclid/sampling/model_tsz.py</code></td>
+        <td><strong>Create</strong> — NumPyro model wrapping <code>EuclidLikelihood_tSZ</code> for NUTS validation</td>
+        <td style="color:var(--amber);">Phase 2</td>
+      </tr>
+      <tr>
+        <td><code>dr1_cmbx/eDR1like/likelihood_tsz.py</code></td>
+        <td><strong>Create</strong> — thin <code>cobaya.Likelihood</code> wrapper around <code>EuclidLikelihood_tSZ</code></td>
+        <td style="color:var(--purple);">Phase 3</td>
+      </tr>
+      <tr>
+        <td><code>eDR1data/gctools/spectra.py</code></td>
+        <td>No change — <code>map2gccls()</code> already supports the <code>y</code> dict input</td>
+        <td style="color:var(--muted);">Phase 0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Key watchouts -->
+  <h3>Key decisions before starting</h3>
+  <div class="two-col">
+    <div class="card" style="margin:0;">
+      <h4 style="color:var(--amber);">GODMAX ell range</h4>
+      <p style="font-size:.88em;color:var(--text2);">
+        Set GODMAX's ell array (via <code>halo_params</code>) to cover the full NaMaster measurement
+        range with enough resolution for $B_{b\ell}$ to work: at minimum 3–5× the number of
+        bandpowers. The measurement range for tSZ × galaxy is typically $\ell \in [80, 500]$;
+        confirm against the actual <code>leff</code> array in the .pkl before running Phase 0.
+      </p>
+    </div>
+    <div class="card" style="margin:0;">
+      <h4 style="color:var(--amber);">First free parameters</h4>
+      <p style="font-size:.88em;color:var(--text2);">
+        Phase 1: start with $(\sigma_8, \Omega_m)$ only — tSZ is extremely sensitive to these
+        ($C_\ell^{yg} \propto \sigma_8^7\Omega_m^2$), so mock recovery will be a strong test.
+        Add one baryonic param ($\theta_{ej,0}$ or $P_0$) once the two-parameter run works.
+        Expand to the full HOD + pressure parameter space only for Phase 3.
+      </p>
+    </div>
+  </div>
+
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     § 5  TRACKING
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="tracking">
+<div class="container">
+
+  <div class="eyebrow">Development log</div>
+  <h2 class="section-title">Tracking</h2>
+  <p class="section-sub">
+    Three active development threads — what changed, where to find it, and what each piece does.
+  </p>
+
+  <div class="timeline">
+
+    <!-- ── Event 1: GODMAX refactor-map ── -->
+    <div class="tl-item">
+      <div class="tl-dot done"></div>
+      <div class="tl-meta">
+        <span class="tl-branch">refactor-map</span>
+        <a href="https://github.com/vilasinits/GODMAX/tree/refactor-map" target="_blank" style="font-size:.75em;color:var(--blue);margin-left:4px;">&#128279; github</a>
+        <span class="tl-tag tt-done">Done</span>
+      </div>
+      <div class="tl-title">GODMAX forked and restructured into a globally pip-installable package</div>
+      <div class="tl-body">
+        <p>
+          The upstream GODMAX (Pandey et al. 2024) was written as a collection of scripts and notebooks
+          tied to a specific machine. This fork (<code>vilasinits/GODMAX</code>, branch <code>refactor-map</code>)
+          restructures it into a proper Python package installable anywhere with <code>pip install -e .</code>
+          and importable as <code>import godmax</code>.
+        </p>
+
+        <h4>What the package does</h4>
+        <p style="font-size:.9em;color:var(--text2);">
+          GODMAX computes all cross-power spectra between galaxy clustering, CMB weak lensing,
+          and the tSZ Compton-y field using a self-consistent baryonic halo model.
+          Unlike approaches that add baryonic corrections post-hoc, GODMAX solves the hydrostatic equilibrium
+          ODE for each halo to derive the pressure profile directly — enabling self-consistent parameter inference
+          on both cosmology and baryonic feedback simultaneously.
+        </p>
+
+        <h4>New file layout</h4>
+        <div class="file-tree">
+<span class="ft-dir">src/godmax/</span>                   <span class="ft-note"># installable as `import godmax`</span><br>
+├── base_class.py              <span class="ft-note"># cosmology, grids, JAX utilities; reads 4 param dicts</span><br>
+├── get_radial_profiles.py     <span class="ft-note"># halo profiles: NFW, gas (BCMP), pressure (HSE), HOD stars</span><br>
+├── get_Pkzs.py                <span class="ft-note"># 3D power spectra P(k,z): 1-halo + 2-halo via vmap/FFTlog</span><br>
+├── get_Cls.py                 <span class="ft-note"># angular Cℓ for all probe pairs via Limber approximation</span><br>
+├── get_covs.py                <span class="ft-note"># Gaussian + 1h non-Gaussian covariance; also computes Cl_yy</span><br>
+├── get_Xis.py                 <span class="ft-note"># real-space ξ(θ) via Hankel transform (mcfitjax)</span><br>
+├── get_sim_maps.py            <span class="ft-note"># HEALPix map pasting from halo catalogues (y, κ, kSZ, δ_g)</span><br>
+├── get_B12_profile.py         <span class="ft-note"># Battaglia+12/16 pressure profiles (alternative to HSE)</span><br>
+├── get_OWLS_profile.py        <span class="ft-note"># LeBrun+15 OWLS AGN profiles (alternative to HSE)</span><br>
+├── hmf_symbolic.py            <span class="ft-note"># symbolic σ(R,z) — differentiable HMF without CAMB</span><br>
+├── matter_pk_symbolic.py      <span class="ft-note"># symbolic P_lin, P_halofit, D(z) — JAX autodiff-safe</span><br>
+├── gaussian_tension.py        <span class="ft-note"># MCMC chain tension metrics</span><br>
+├── setup_baryonification.py<br>
+├── <span class="ft-dir">helpers/</span>  constants.py · jax_cosmo_power.py · twobessel.py<br>
+└── <span class="ft-dir">mcfitjax/</span> <span class="ft-note"># JAX port of mcfit: differentiable Mellin–Hankel transforms</span><br>
+<br>
+pyproject.toml                 <span class="ft-note"># name=godmax, python&gt;=3.8, deps: numpyro · jax · interpax · colossus · healpy …</span><br>
+param_files/                   <span class="ft-note"># YAML configs per experiment: DESxACT · Pge · xCMASS · xDESI</span><br>
+run_scripts/                   <span class="ft-note"># HPC-ready run scripts: pge · dtai · delta</span>
+        </div>
+
+        <h4>How the class hierarchy works</h4>
+        <p style="font-size:.88em;color:var(--text2);margin-bottom:8px;">
+          Each class in the inheritance chain adds one layer of computation and stores results
+          as instance attributes. You only instantiate the highest level you need.
+        </p>
+        <pre style="margin:0 0 10px;">base_class        # reads 4 YAML dicts; sets up cosmology, grids, P_lin(k,z)
+  └─► Profiles      # computes all halo profiles as (nz × nM × nr) matrices via vmap
+        └─► get_Pkz # assembles 3D P(k,z): 1h = ∫u_A u_B dn/dlnM dM, 2h = b_A b_B P_lin
+              └─► get_Cl  # Limber: C_ℓ = ∫ W_A W_B / χ² × P(ℓ/χ, z) dz
+                    ├─► get_cov  # Gaussian (Knox) + 1h non-Gaussian (trispectrum) covariance
+                    └─► get_xi   # real-space ξ(θ) via Hankel transform</pre>
+        <p style="font-size:.88em;color:var(--text2);">
+          The optional <code>*_obj=None</code> argument on each constructor lets you pass a
+          pre-computed lower-level object to avoid recomputation when sweeping parameters.
+        </p>
+
+        <h4>Key design decisions that enable JAX autodiff</h4>
+        <ul style="font-size:.88em;color:var(--text2);margin:0 0 0 18px;">
+          <li>
+            <strong>Symbolic HMF</strong> (<code>hmf_symbolic.py</code>): the Tinker HMF requires
+            $\sigma(M,z)$, which normally needs CAMB. A symbolic regression fit to $\sigma(R,z)$
+            makes the entire HMF computation a closed-form JAX expression — the autodiff graph
+            stays intact for NUTS gradient computation.
+          </li>
+          <li>
+            <strong>Symbolic power spectrum</strong> (<code>matter_pk_symbolic.py</code>): same idea
+            for $P_{\rm lin}(k,z)$, $P_{\rm halofit}(k,z)$, and $D(z)$ — no external CAMB call
+            inside the inference loop.
+          </li>
+          <li>
+            <strong>vmap pattern</strong>: all profile integrals are written as scalar functions
+            <code>@jit def get_X(self, jz, jM, jr)</code>, then vmapped over all grid indices
+            simultaneously via <code>get_vmapped_func(self.get_X, 3)(arange(nz), arange(nM), arange(nr))</code>.
+            This produces GPU-accelerated lookup matrices.
+          </li>
+          <li>
+            <strong>mcfitjax</strong>: a JAX port of the <code>mcfit</code> Mellin–Hankel transform
+            library. Used to Fourier-transform radial profiles $u(r) \to \tilde{u}(k)$ and to compute
+            real-space correlation functions $\xi(\theta)$ — both differentiably.
+          </li>
+        </ul>
+
+        <h4>The four parameter dictionaries</h4>
+        <p style="font-size:.88em;color:var(--text2);">
+          Every class takes the same four dicts (loaded from YAML via <code>deepmerge</code>):
+        </p>
+        <table class="diff-table" style="font-size:.82em;">
+          <thead><tr><th>Dict</th><th>Controls</th><th>Examples</th></tr></thead>
+          <tbody>
+            <tr><td><code>sim_params</code></td><td>Physics</td><td>H0=67.2, σ₈=0.81, θ_ej_0=2.0, α_nt=0.18, log10M1_fshmr=12.35</td></tr>
+            <tr><td><code>halo_params</code></td><td>Grid resolution</td><td>r∈[0.005,8], 23 pts; M∈[10¹¹·⁵,10¹⁵·⁵], 24 pts; ℓ∈[11,8972], 30 pts</td></tr>
+            <tr><td><code>analysis</code></td><td>Model switches</td><td>model_tSZ, beam_fwhm_arcmin=1.6, stats_for_cov=[ky,kk,gy,gg,gk]</td></tr>
+            <tr><td><code>other_params</code></td><td>Systematics &amp; nuisance</td><td>A_IA=0.1, η_IA=0.1, α_ky=1.0, photo-z shift per bin</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Event 2: extract-yy ── -->
+    <div class="tl-item">
+      <div class="tl-dot done"></div>
+      <div class="tl-meta">
+        <span class="tl-branch green-b">extract-yy</span>
+        <a href="https://github.com/vilasinits/GODMAX/tree/extract-yy" target="_blank" style="font-size:.75em;color:var(--green);margin-left:4px;">&#128279; github</a>
+        <span class="tl-tag tt-done">Done</span>
+      </div>
+      <div class="tl-title">GODMAX — migrate analysis scripts to use the installed package; yy spectrum live</div>
+      <div class="tl-body">
+        <p>
+          Branched from <code>refactor-map</code> on 3 March 2026. The goal is to make all
+          notebooks and run scripts use GODMAX as an <em>installed library</em>
+          (<code>from godmax.X import …</code>) rather than manipulating <code>sys.path</code>
+          to import from a relative directory. This is the change needed before the yy spectrum
+          can be cleanly called from the <code>tSZxEuclid</code> project.
+        </p>
+
+        <h4>What changed in the scripts</h4>
+        <table class="diff-table">
+          <thead><tr><th>File</th><th class="cell-old">Before</th><th class="cell-new">After</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>All notebooks &amp; run scripts</td>
+              <td class="cell-old"><code>sys.path.append(abs_path_src)</code><br><code>from base_class import …</code></td>
+              <td class="cell-new"><code>from godmax.base_class import …</code><br>(no sys.path manipulation)</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:.88em;color:var(--text2);margin-top:8px;">
+          Files updated: notebooks in <code>measurements/ACTxDES/</code>,
+          <code>notebooks/ACTxDES/</code>, <code>notebooks/all_arxiv/</code>.
+          No changes to <code>src/godmax/</code> library code.
+        </p>
+
+        <h4>Where the yy spectrum lives (in both branches)</h4>
+        <div class="callout teal" style="margin-top:10px;">
+          The $C_\ell^{yy}$ implementation is already present in <code>refactor-map</code>
+          inside <code>get_covs.py</code> (the <code>get_cov</code> class), not in
+          <code>get_Cls.py</code>. The <code>extract-yy</code> branch makes it usable
+          from external projects by fixing the import namespace.
+        </div>
+        <p style="font-size:.88em;color:var(--text2);margin-top:10px;">
+          How the yy auto-spectrum is computed in <code>get_cov.__init__()</code>:
+        </p>
+        <pre style="font-size:.78em;">
+# 1. Build the 3D tSZ auto-power P_yy(k,z) = P_yy_1h + b_y^2 * P_lin
+Pyy_1h_kz_mat  = vmap(get_P_1h, probe1=3, probe2=3)   # shape (nk, nz)
+Pyy_2h_kz_mat  = by_kz_mat**2  *  plin_kz_mat
+self.Pyy_tot_kz_mat = Pyy_1h_kz_mat + Pyy_2h_kz_mat
+
+# 2. Project to (ℓ, z) with beam suppression B(ℓ)²
+def get_Pkyy_lz(jl, jz):
+    ell   = ell_array[jl]
+    Bl    = exp(-ell*(ell+1) * sig_beam**2 / 2.)     # Gaussian beam
+    k_ell = (ell + 0.5) / chi_array[jz]              # Limber k
+    Pkz   = interp(log(k_ell), log(kPk_array), log(Pyy_tot[:,jz]))
+    return Bl**2  *  exp(Pkz)
+
+# 3. Angular Cℓ^yy via Limber integral
+def get_Cl_y_y_tot(jl):
+    Wy = 1 / (1 + z_array)                           # tSZ window function
+    integrand = Wy**2 / chi**2  *  P_yy_limber  *  chi**2  *  dchi_dz
+    return trapezoid(integrand, z_array)</pre>
+        <p style="font-size:.88em;color:var(--text2);">
+          Noise handling: if <code>yy_total_ell_fname</code> is provided, the total (signal + noise)
+          $C_\ell^{yy}$ is loaded directly from file and interpolated onto the survey ell array.
+          Otherwise a noise file can be added to the theory prediction.
+          The non-Gaussian covariance for yy uses the 1-halo trispectrum
+          $T^{yyyy}$ via <code>get_T_ABCD_NG</code> with all four legs set to probe=3 (tSZ).
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Event 3: tSZxEuclid dev-godmax ── -->
+    <div class="tl-item">
+      <div class="tl-dot done"></div>
+      <div class="tl-meta">
+        <span class="tl-branch amber-b">dev-godmax</span>
+        <a href="https://github.com/Emmaaycoberry/tSZxEuclid/tree/dev-godmax" target="_blank" style="font-size:.75em;color:var(--amber);margin-left:4px;">&#128279; github (private)</a>
+        <span class="tl-tag tt-done">Done</span>
+      </div>
+      <div class="tl-title">tSZxEuclid — extract GODMAX pipeline from notebooks into a pip package</div>
+      <div class="tl-body">
+        <p>
+          The <code>tSZxEuclid</code> analysis repo (<code>Emmaaycoberry/tSZxEuclid</code>,
+          branch <code>dev-godmax</code>) originally called GODMAX from inline Jupyter notebook cells,
+          with all pipeline logic — parameter loading, ell-array construction, $n(z)$ processing,
+          data vector assembly, MCMC execution — written directly in notebook cells with hardcoded paths.
+          Running the same notebook on a different machine or on HPC required manually editing paths in
+          multiple cells. There was also no way to test individual pipeline components in isolation.
+        </p>
+        <p>
+          The refactoring extracts all pipeline logic into
+          <code>src/tSZxEuclid/godmax/</code> — a proper pip-installable subpackage — so notebooks
+          become thin, readable wrappers that just set paths and call high-level functions.
+        </p>
+
+        <h4>New package structure</h4>
+        <div class="file-tree">
+<span class="ft-dir">src/tSZxEuclid/godmax/</span>   <span class="ft-note"># new: all pipeline logic is here</span><br>
+├── <span class="ft-dir">config/</span><br>
+│   └── loader.py          <span class="ft-note"># read_yaml, merge_params (deep merge via deepmerge), load_priors</span><br>
+├── <span class="ft-dir">surveys/</span><br>
+│   └── nz.py              <span class="ft-note"># to_comoving_nz, setup_comoving_nz, setup_lens_bins, setup_source_bins</span><br>
+├── <span class="ft-dir">sampling/</span><br>
+│   ├── ell.py             <span class="ft-note"># make_ell_array, setup_ell_arrays — log-spaced ℓ array construction</span><br>
+│   ├── model.py           <span class="ft-note"># build_bin_combinations, build_data_vector, full_cov_matrix, uniform_prior</span><br>
+│   ├── runner.py          <span class="ft-note"># run_pmap_mcmc — NUTS × jax.pmap; one chain per GPU</span><br>
+│   └── io.py              <span class="ft-note"># chain_to_numpy, add_run_settings, save_chain, load_chain (dill)</span><br>
+├── <span class="ft-dir">diagnostics/</span><br>
+│   └── mcmc.py            <span class="ft-note"># R-hat, potential energy, divergences (ArviZ)</span><br>
+└── <span class="ft-dir">plotting/</span><br>
+    └── corner.py          <span class="ft-note"># corner_plot, trace_plots, autocorr_plots, plot_covariance_matrix (GetDist)</span><br>
+<br>
+tests/                     <span class="ft-note"># new: test_loader, test_ell, test_model, test_io, test_nz</span>
+        </div>
+
+        <h4>Key changes — before &amp; after</h4>
+        <table class="diff-table">
+          <thead>
+            <tr><th>Concern</th><th class="cell-old">Before — inline in notebook cells</th><th class="cell-new">After — imported from package</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Parameter loading</strong></td>
+              <td class="cell-old">
+                Two separate <code>yaml.safe_load()</code> calls merged with
+                <code>{**default, **experiment}</code> — shallow merge silently drops any nested
+                keys that exist in <code>default</code> but not in <code>experiment</code>
+              </td>
+              <td class="cell-new">
+                <code>merge_params(PARAM_DIR/"params_default.yaml", PARAM_DIR/"Pge/params.yaml")</code>
+                — deep recursive merge via <code>deepmerge.always_merger</code>; nested keys are
+                preserved and overridden correctly
+              </td>
+            </tr>
+            <tr>
+              <td><strong>File paths</strong></td>
+              <td class="cell-old">
+                Absolute paths hardcoded: <code>abs_path_params = "/home/ldumilly/tSZxEuclid/…"</code>
+                — breaks immediately on any other machine
+              </td>
+              <td class="cell-new">
+                <code>PARAM_DIR = Path("../../../params_godmax").resolve()</code> —
+                path is relative to notebook location, resolved at runtime; works on any machine
+                or as <code>GODMAX_OUTPUT_DIR</code> environment variable on HPC
+              </td>
+            </tr>
+            <tr>
+              <td><strong>ℓ-array setup</strong></td>
+              <td class="cell-old">
+                5-line cell: <code>l_edges = np.exp(np.arange(np.log(lmin), np.log(lmax), dl_log))</code>,
+                then manually assigned into both <code>analysis</code> and <code>halo</code> dicts
+              </td>
+              <td class="cell-new">
+                <code>setup_ell_arrays(analysis, halo, lmin=80, lmax=500, dl_log=0.53)</code>
+                — single call; handles log-spacing, bin edges, and both dict assignments
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Galaxy $n(z)$</strong></td>
+              <td class="cell-old">
+                Inline <code>def to_comoving_nz(z, nz, cosmo): …</code> defined in a cell,
+                then <code>np.loadtxt(…)</code> + 3 manual dict assignments per bin
+              </td>
+              <td class="cell-new">
+                <code>setup_comoving_nz(DATA_DIR/"euclid_nz.txt", cosmo, analysis)</code> —
+                loads, converts to comoving units, and stores in <code>analysis</code> dict;
+                <code>setup_lens_bins</code> / <code>setup_source_bins</code> for tomographic splits
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Bin combinations</strong></td>
+              <td class="cell-old">
+                20-line <code>for probe in probes_analysis:</code> loop with
+                <code>if probe in ['gy', 'ky']:</code> / <code>else:</code> branching to decide
+                which array axes to iterate over
+              </td>
+              <td class="cell-new">
+                <code>bin_comb_all = build_bin_combinations(probes, Cl_theory)</code> —
+                returns an ordered list of <code>(probe, bin1, bin2)</code> tuples; probe-agnostic
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Flat data vector</strong></td>
+              <td class="cell-old">
+                15-line loop using JAX <code>.at[i*nell:(i+1)*nell].set(…)</code> with 5
+                <code>if probe ==</code> branches selecting the right array slice per probe
+              </td>
+              <td class="cell-new">
+                <code>data_vec = build_data_vector(get_cl, bin_comb_all, nell)</code> —
+                iterates over <code>bin_comb_all</code>, automatically handles all probe types;
+                output is a flat JAX array of shape <code>(ncomb × nell,)</code>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Block covariance</strong></td>
+              <td class="cell-old">
+                25-line <code>def full_cov_matrix(…):</code> defined inline inside a notebook cell,
+                re-implemented for each new analysis
+              </td>
+              <td class="cell-new">
+                <code>cov_total = full_cov_matrix(cov, bin_comb_all, nell)</code>
+                from <code>tSZxEuclid.godmax.sampling.model</code>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>MCMC execution</strong></td>
+              <td class="cell-old">
+                Inline <code>def do_mcmc(): …</code> closure capturing outer-scope variables,
+                then <code>pmap(do_mcmc)(rng_keys)</code>, then manual
+                <code>for key in trace: concatenate along axis 0</code> loop
+              </td>
+              <td class="cell-new">
+                <code>trace = run_pmap_mcmc(observed_model, num_warmup=500, num_samples=1000,
+                num_chains=4, max_tree_depth=10, seed=42)</code> —
+                handles pmap, chain concatenation, and RNG key splitting internally
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Output saving</strong></td>
+              <td class="cell-old">
+                Hardcoded path <code>/home/ldumilly/GODMAX/runs/…</code>,
+                manual <code>pickle.dump</code>
+              </td>
+              <td class="cell-new">
+                <code>save_chain(trace, OUTPUT_DIR, "run_pge_v1.pkl")</code> via <code>io.py</code>;
+                also attaches run metadata (<code>add_run_settings</code>) and supports
+                <code>load_chain</code> for downstream diagnostics
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4 style="margin-top:16px;">What this enables</h4>
+        <ul style="font-size:.88em;color:var(--text2);margin:0 0 0 18px;">
+          <li>Notebooks are now reproducible on any machine: set <code>PARAM_DIR</code> and <code>DATA_DIR</code> at the top; all function calls work unchanged</li>
+          <li>HPC scripts (<code>scripts/python/godmax/</code>) can import the same functions without duplicating logic</li>
+          <li>Unit tests (<code>tests/</code>) verify each module independently — previously impossible with inline code</li>
+          <li>Post-processing (diagnostics, plotting) is now a single function call on a loaded chain file</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     § 6  REFERENCES
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="references">
+<div class="container">
+
+  <div class="eyebrow">Literature</div>
+  <h2 class="section-title">References</h2>
+
+  <ul class="ref-list">
+    <li><span class="ref-n">[1]</span><span><strong>Sunyaev &amp; Zel'dovich (1970, 1972)</strong> — Original tSZ effect papers. <em>Comments Astrophys. Space Phys.</em></span></li>
+    <li><span class="ref-n">[2]</span><span><strong>Planck Collaboration VI (2020)</strong> — Planck 2018 cosmological parameters. <em>A&amp;A</em> 641, A6. arXiv:1807.06209</span></li>
+    <li><span class="ref-n">[3]</span><span><strong>Arnaud et al. (2010)</strong> — Universal GNFW pressure profile from X-ray observations. <em>A&amp;A</em> 517, A92. arXiv:0910.1234</span></li>
+    <li><span class="ref-n">[4]</span><span><strong>Tinker et al. (2008, 2010)</strong> — Halo mass function and halo bias. <em>ApJ</em> 688 &amp; 724. arXiv:0803.2706, 1005.3744</span></li>
+    <li><span class="ref-n">[5]</span><span><strong>Battaglia et al. (2012, 2016)</strong> — Pressure profiles from AGN feedback simulations. <em>ApJ</em> 758; <em>JCAP</em> 2016.</span></li>
+    <li><span class="ref-n">[6]</span><span><strong>LeBrun et al. (2015)</strong> — OWLS AGN feedback pressure profiles. <em>MNRAS</em> 451. arXiv:1501.03750</span></li>
+    <li><span class="ref-n">[7]</span><span><strong>Kusiak et al. (2022)</strong> — HOD parameters for tSZ cross-correlations. arXiv:2203.12438</span></li>
+    <li><span class="ref-n">[8]</span><span><strong>Alonso et al. (2019)</strong> — NaMaster: pseudo-$C_\ell$ estimator. <em>MNRAS</em> 484, 4127. arXiv:1809.09603</span></li>
+    <li><span class="ref-n">[9]</span><span><strong>Pandey et al. (2024)</strong> — GODMAX: JAX halo model for cross-correlations. arXiv:2401.18072</span></li>
+    <li><span class="ref-n">[10]</span><span><strong>Bolliet et al. (2023)</strong> — CLASS-SZ: fast SZ angular power spectra. <em>Local: cosmology_with_sz.pdf</em></span></li>
+    <li><span class="ref-n">[11]</span><span><strong>DES Y3 &times; ACT/Planck I</strong> — Cross-correlation DES lensing &times; tSZ: measurements and feedback constraints. <em>Local: DES Y3 x ACT… I.pdf</em></span></li>
+    <li><span class="ref-n">[12]</span><span><strong>DES Y3 &times; ACT/Planck II</strong> — Cross-correlation DES lensing &times; tSZ II. <em>Local: DES Y3 x ACT… II.pdf</em></span></li>
+    <li><span class="ref-n">[13]</span><span><strong>ACT Collaboration</strong> — kSZ + tSZ from BOSS CMASS and LOWZ. <em>Local: Atacama…BOSS.pdf</em></span></li>
+    <li><span class="ref-n">[14]</span><span><strong>Cross-correlation of tSZ and CMB lensing</strong> — <em>Local: Cross-correlation of the thermal…pdf</em></span></li>
+    <li><span class="ref-n">[15]</span><span><strong>Salvati et al.</strong> — New constraints on the hydrostatic mass bias. <em>Local: New constraints…pdf; stad3808.pdf</em></span></li>
+    <li><span class="ref-n">[16]</span><span><strong>Removing the giants</strong> — A new SZ power spectrum via cluster masking. <em>Local: Removing the giants…pdf</em></span></li>
+    <li><span class="ref-n">[17]</span><span><strong>2026_02 BP Fevrier</strong> — Recent group presentation. <em>Local: references/2026_02_BP_fevrier.pdf</em></span></li>
+  </ul>
+
+</div>
+</section>
+
+<footer style="background:var(--hdr);color:var(--hdr-muted);text-align:center;padding:24px;font-size:.8em;letter-spacing:.02em;">
+  tSZ&times;Euclid Research Notes &mdash; DR1-KP-CMBX-4 &mdash;
+  <span style="color:var(--hdr-accent);">Université Paris-Saclay / IAS</span>
+</footer>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCRIPTS
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+/* ── Mermaid ─────────────────────────────────────────────────────── */
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    background:           '#182334',
+    primaryColor:         '#1E2E42',
+    primaryTextColor:     '#D8E6F5',
+    primaryBorderColor:   '#5AAEE0',
+    lineColor:            '#4A6A8A',
+    secondaryColor:       '#1A2A3F',
+    tertiaryColor:        '#253650',
+    clusterBkg:           '#101C2C',
+    clusterBorder:        '#253650',
+    titleColor:           '#A0BAD5',
+    edgeLabelBackground:  '#101C2C',
+    fontSize:             '13px',
+  },
+  flowchart: { curve: 'basis', padding: 20, htmlLabels: true },
+});
+
+/* ── Tab switching ───────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const container = btn.closest('.container');
+    container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = container.querySelector('#tab-' + btn.dataset.tab);
+    if (panel) panel.classList.add('active');
+  });
+});
+
+/* ── Active nav on scroll ────────────────────────────────────────── */
+const sections = document.querySelectorAll('section[id]');
+const navLinks  = document.querySelectorAll('.site-nav a');
+const scrollObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`.site-nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-15% 0px -75% 0px' });
+sections.forEach(s => scrollObs.observe(s));
+
+/* ── Concept map (vis-network) ───────────────────────────────────── */
+(function buildConceptMap() {
+  const C = {
+    inp:    { bg: '#3A2408', border: '#F0A840', font: '#F0D090' },
+    proc:   { bg: '#0E1C2E', border: '#5AAEE0', font: '#90C8F0' },
+    theory: { bg: '#140A24', border: '#A878E8', font: '#C8A0F0' },
+    tool:   { bg: '#0A2018', border: '#4DC87E', font: '#80D8A8' },
+    infer:  { bg: '#061418', border: '#38C8D8', font: '#80D8E8' },
+    result: { bg: '#1A0810', border: '#E06070', font: '#F0A0A8' },
+  };
+
+  function n(id, label, group, extra) {
+    const c = C[group];
+    return Object.assign({
+      id, label, group,
+      color: { background: c.bg, border: c.border, highlight: { background: c.bg, border: '#fff' } },
+      font:  { color: c.font, size: 13, face: 'Inter,system-ui,sans-serif', multi: false },
+      shape: 'box',
+      margin: { top: 8, bottom: 8, left: 10, right: 10 },
+      borderWidth: 2,
+      shadow: { enabled: true, size: 8, color: 'rgba(0,0,0,0.5)' },
+    }, extra || {});
+  }
+
+  const nodes = new vis.DataSet([
+    /* Data sources */
+    n(1,  'Euclid catalog\nRR2 / Q1',         'inp'),
+    n(2,  'Planck PR4\ny-map (NILC)',           'inp'),
+    n(3,  'ACT DR6\ny-map (neural ILC)',        'inp'),
+    n(4,  'CMB κ-map\nACT / Planck',           'inp'),
+    /* Map processing */
+    n(5,  'cat2map\nHEALPix δ_g',              'proc'),
+    n(6,  'n(z) per bin\n6 tomo bins',         'proc'),
+    n(7,  'NaMaster\npseudo-Cℓ',               'proc'),
+    n(8,  'Data store .pkl\nCl · cov · Bbl',  'proc'),
+    /* Physical theory */
+    n(9,  'Halo model\n1h + 2h',              'theory'),
+    n(10, 'GNFW pressure\nHSE profile Pe(r)',  'theory'),
+    n(11, 'HOD\nN_gal(M)',                     'theory'),
+    n(12, 'Limber integral\nCℓ theory',        'theory'),
+    /* Software tools */
+    n(13, 'GODMAX\n(JAX, GPU)',                'tool'),
+    n(14, 'tSZxEuclid\nwrapper pkg',          'tool'),
+    n(15, 'CLASS-SZ\ntheory provider',         'tool'),
+    n(16, 'dr1_cmbx\nCobaya likelihood',       'tool'),
+    /* Inference */
+    n(17, 'Data vector\n+ covariance',         'infer'),
+    n(18, 'NUTS sampler\nNumPyro + jax.pmap',  'infer'),
+    n(19, 'Cobaya MCMC',                       'infer'),
+    /* Results */
+    n(20, 'Cℓ^yg detected!\nfirst detection',  'result'),
+    n(21, 'σ₈ , Ωm\nconstraints',              'result'),
+    n(22, 'bHSE , P0\nbaryonic feedback',      'result'),
+  ]);
+
+  function e(from, to, label, extra) {
+    return Object.assign({ from, to, label: label || '',
+      arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+      color:  { color: '#304860', highlight: '#5AAEE0' },
+      font:   { color: '#607890', size: 10, face: 'Inter,sans-serif', align: 'middle' },
+      smooth: { type: 'curvedCW', roundness: 0.12 },
+    }, extra || {});
+  }
+
+  const edges = new vis.DataSet([
+    /* catalog → processing */
+    e(1, 5, 'overdensity map'),
+    e(1, 6, 'n(z)'),
+    e(2, 7, 'y-map'),
+    e(3, 7, 'y-map'),
+    e(4, 7, 'κ-map'),
+    e(5, 7, 'δ_g map'),
+    e(7, 8, 'measured Cℓ'),
+    /* n(z) to tools */
+    e(6, 13, ''),
+    e(6, 14, ''),
+    /* theory chain */
+    e(9,  10, ''),
+    e(9,  11, ''),
+    e(9,  12, ''),
+    e(10, 13, 'profile'),
+    e(11, 13, 'HOD'),
+    e(12, 13, 'Limber'),
+    /* tool connections */
+    e(13, 14, 'get_Cl'),
+    e(14, 18, 'NUTS'),
+    e(15, 16, 'theory Cℓ'),
+    e(16, 19, 'MCMC'),
+    /* data to inference */
+    e(8, 17, ''),
+    e(17, 18, 'data vec'),
+    e(17, 19, 'data vec'),
+    /* results */
+    e(18, 20, ''),
+    e(18, 21, ''),
+    e(18, 22, ''),
+    e(19, 21, ''),
+    e(19, 22, ''),
+  ]);
+
+  const container = document.getElementById('concept-map');
+  new vis.Network(container, { nodes, edges }, {
+    layout: { hierarchical: false },
+    physics: {
+      enabled: true,
+      solver: 'forceAtlas2Based',
+      forceAtlas2Based: {
+        gravitationalConstant: -70,
+        centralGravity: 0.005,
+        springLength: 140,
+        springConstant: 0.06,
+        damping: 0.4,
+      },
+      stabilization: { iterations: 300, fit: true },
+    },
+    interaction: { hover: true, tooltipDelay: 150, zoomView: true },
+    nodes: { borderWidth: 2 },
+    edges: { width: 1.5 },
+  });
+})();
+</script>
+
+</body>
+</html>

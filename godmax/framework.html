@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GODMAX — Framework Notes</title>
+
+<!-- MathJax -->
+<script>
+  MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']], tags: 'ams' },
+    options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<!-- Mermaid (flow diagrams) -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<!-- vis-network (interactive concept map) -->
+<script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+<link   href="https://unpkg.com/vis-network@9.1.9/dist/dist/vis-network.min.css" rel="stylesheet">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #f7f8fc;
+    --surface:  #ffffff;
+    --border:   #e2e6ef;
+    --text:     #1a1d2e;
+    --muted:    #6b7280;
+    --accent1:  #3b5bdb;
+    --accent2:  #1098ad;
+    --accent3:  #e67700;
+    --accent4:  #2f9e44;
+    --accent5:  #9c36b5;
+    --radius:   10px;
+    --shadow:   0 2px 12px rgba(0,0,0,.08);
+  }
+  body { font-family: "Inter", system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.65; }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  nav {
+    width: 230px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 28px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  nav .brand { padding: 0 20px 18px; font-weight: 700; font-size: 13px; color: var(--accent1); letter-spacing: .04em; text-transform: uppercase; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  nav a { display: block; padding: 6px 20px; color: var(--muted); text-decoration: none; font-size: 13px; border-left: 3px solid transparent; transition: all .15s; }
+  nav a:hover, nav a.active { color: var(--accent1); border-left-color: var(--accent1); background: #eef1fb; }
+  nav .section-label { padding: 14px 20px 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #b0b8cc; }
+
+  main { flex: 1; padding: 48px 56px; max-width: 1120px; }
+
+  h1 { font-size: 2rem; font-weight: 800; margin-bottom: .3em; }
+  h2 { font-size: 1.35rem; font-weight: 700; margin: 2.4em 0 .8em; padding-bottom: .4em; border-bottom: 2px solid var(--border); scroll-margin-top: 20px; }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 1.6em 0 .5em; }
+  h4 { font-size: .95rem; font-weight: 600; margin: 1.2em 0 .4em; }
+  p  { margin-bottom: .9em; }
+  a  { color: var(--accent1); }
+  code { font-family: "JetBrains Mono","Fira Code",monospace; font-size: .87em; background: #eef1fb; padding: 1px 5px; border-radius: 4px; color: var(--accent1); }
+  pre { background: #1e2235; color: #cdd3e8; padding: 16px 20px; border-radius: var(--radius); overflow-x: auto; font-size: .84em; line-height: 1.6; margin: 1em 0; }
+  pre code { background: none; color: inherit; padding: 0; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; margin: 1.2em 0; box-shadow: var(--shadow); }
+  .callout { border-left: 4px solid var(--accent1); background: #f0f3ff; border-radius: 0 var(--radius) var(--radius) 0; padding: 14px 18px; margin: 1em 0; font-size: .95em; }
+  .callout.science { border-color: var(--accent2); background: #e6f9fc; }
+  .callout.warn    { border-color: var(--accent3); background: #fff7e6; }
+  .callout.note    { border-color: var(--accent5); background: #f8f0ff; }
+
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: .78em; font-weight: 600; }
+  .badge-blue  { background: #dbe4ff; color: var(--accent1); }
+  .badge-teal  { background: #d3f9d8; color: #1c7c3a; }
+  .badge-amber { background: #fff3bf; color: #974b00; }
+  .badge-gray  { background: #e9ecef; color: #495057; }
+  .badge-red   { background: #ffe3e3; color: #9b2335; }
+  .badge-purple{ background: #f3d9fa; color: #6b21a8; }
+
+  /* Tables */
+  table.styled { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: .9em; }
+  table.styled th { background: var(--accent1); color: #fff; padding: 10px 14px; text-align: left; }
+  table.styled td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.styled tr:nth-child(even) td { background: #f7f9ff; }
+  .yes  { color: #1c7c3a; font-weight: 600; }
+  .no   { color: #9b2335; font-weight: 600; }
+  .part { color: #974b00; font-weight: 600; }
+
+  /* Mermaid */
+  .mermaid-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin: 1em 0; overflow-x: auto; box-shadow: var(--shadow); text-align: center; }
+
+  /* vis.js */
+  #concept-map { width: 100%; height: 560px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .network-legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: .85em; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot  { width: 12px; height: 12px; border-radius: 50%; }
+
+  /* Module grid */
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 1em 0; }
+  .module-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+  .module-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: .35em; }
+  .module-card .path { font-size: .76em; color: var(--muted); font-family: monospace; margin-bottom: .5em; }
+  .module-card ul { margin: 0 0 0 1.1em; font-size: .87em; color: #374151; }
+  .module-card li { margin-bottom: 3px; }
+  .module-card .tags { margin-top: 8px; }
+
+  .hero { padding: 32px 0 24px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .hero-subtitle { color: var(--muted); font-size: 1.05rem; margin-top: .3em; }
+  .hero-meta { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* Eq box */
+  .eq-box { background: #f8f9ff; border: 1px solid #c5cfee; border-radius: var(--radius); padding: 16px 20px; margin: .8em 0; overflow-x: auto; }
+  .eq-label { float: right; color: var(--muted); font-size: .82em; margin-top: 2px; }
+
+  /* Param table */
+  .param-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; margin: .8em 0; }
+  .param-row { display: flex; gap: 8px; font-size: .88em; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
+  .param-sym { font-family: monospace; color: var(--accent1); min-width: 120px; font-weight: 600; }
+  .param-desc { color: var(--text); }
+
+  /* Tree */
+  .tree { font-family: monospace; font-size: .88em; line-height: 1.85; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); }
+  .tree .dir  { color: var(--accent1); font-weight: 600; }
+  .tree .file { color: var(--text); }
+  .tree .note { color: var(--muted); font-size: .92em; }
+</style>
+</head>
+
+<body>
+<div class="layout">
+
+<!-- ═══════════════════════════════════════════════════ SIDEBAR ═══ -->
+<nav>
+  <div class="brand">GODMAX Notes</div>
+  <div class="section-label">Overview</div>
+  <a href="#intro">Introduction</a>
+  <a href="#name">What is GODMAX?</a>
+  <a href="#repo">Repository Structure</a>
+
+  <div class="section-label">Physics</div>
+  <a href="#halomodel">Halo Model</a>
+  <a href="#profiles">Gas Profiles</a>
+  <a href="#angular">Angular Power Spectra</a>
+  <a href="#systematics">Systematics</a>
+
+  <div class="section-label">Implementation</div>
+  <a href="#modules">Code Modules</a>
+  <a href="#flowchart">Code Flowchart</a>
+  <a href="#concept-map-sec">Concept Map</a>
+  <a href="#sampling">Sampling Setup</a>
+  <a href="#yy-extraction">C_yy Extraction</a>
+
+  <div class="section-label">Coverage</div>
+  <a href="#probes">Cross-Correlations</a>
+  <a href="#params">Parameter Space</a>
+
+  <div class="section-label">Links</div>
+  <a href="index.html">← tSZxEuclid Notes</a>
+  <a href="https://github.com/vilasinits/GODMAX/tree/refactor-map" target="_blank">GitHub (refactor-map)</a>
+  <a href="https://arxiv.org/abs/2401.18072" target="_blank">arXiv:2401.18072</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════ MAIN ═══ -->
+<main>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>GODMAX</h1>
+  <div class="hero-subtitle">Gas thermODynamics and Matter distribution using jAX — Framework Notes</div>
+  <div class="hero-meta">
+    <span class="badge badge-blue">arXiv 2401.18072</span>
+    <span class="badge badge-teal">JAX / NumPyro</span>
+    <span class="badge badge-amber">Halo Model</span>
+    <span class="badge badge-purple">Bayesian Inference</span>
+    <span class="badge badge-gray">branch: refactor-map</span>
+  </div>
+</div>
+
+<!-- ─── INTRODUCTION ─── -->
+<h2 id="intro">Introduction</h2>
+
+<p>
+GODMAX is a <strong>JAX-based halo model framework</strong> for jointly modelling baryonic thermodynamics
+and the cosmic large-scale structure. It connects the 3D density and pressure profiles of gas inside haloes
+to observable cross-power spectra, enabling simultaneous inference of cosmological and astrophysical parameters
+from multi-probe data.
+</p>
+
+<div class="callout science">
+  <strong>Core scientific problem:</strong> Baryonic feedback from AGN and supernovae redistributes gas on megaparsec
+  scales, suppressing the total matter power spectrum by <strong>10–20 %</strong> at weak-lensing scales. This is
+  the dominant systematic uncertainty in current cosmological weak-lensing analyses. GODMAX models this
+  <em>self-consistently</em> by solving hydrostatic equilibrium rather than applying a post-hoc correction.
+</div>
+
+<h3 id="name">What does the name mean?</h3>
+
+<div class="card">
+  <p style="font-size:1.1em; text-align:center;">
+    <strong>G</strong>as therm<strong>O</strong>
+    <strong>D</strong>ynamics and <strong>M</strong>atter distribution using j<strong>AX</strong>
+  </p>
+  <p style="text-align:center; color: var(--muted); font-size:.9em; margin-top:.4em;">
+    The name encapsulates the two coupled physics themes (gas thermodynamics + dark matter/baryon distribution)
+    and the computational backbone (JAX for auto-differentiation and JIT compilation).
+  </p>
+</div>
+
+<p>
+The framework targets joint analyses of:
+</p>
+<ul style="margin: 0 0 1em 1.5em; line-height:1.9;">
+  <li>Weak lensing convergence auto-correlations <span class="badge badge-blue">κκ</span></li>
+  <li>Convergence × thermal SZ cross-correlation <span class="badge badge-teal">κy</span></li>
+  <li>Galaxy clustering auto-correlation <span class="badge badge-amber">gg</span> <em>(code only, not paper)</em></li>
+  <li>Galaxy × convergence <span class="badge badge-amber">gk</span>, Galaxy × tSZ <span class="badge badge-amber">gy</span> <em>(code only)</em></li>
+  <li>Galaxy-galaxy lensing excess surface density <span class="badge badge-purple">ge</span> <em>(code only)</em></li>
+</ul>
+
+<div class="callout warn">
+  <strong>Paper vs Code gap:</strong> The arXiv paper (2401.18072) only analyses $\kappa\kappa$ and $\kappa y$
+  in real space. The <code>refactor-map</code> branch of the code implements a much wider probe set
+  (gg, gk, gy, ge), which are used in the Fisher/MCMC run scripts but not formally described in the paper.
+</div>
+
+<p>The target survey combination in the paper is <strong>Vera Rubin LSST</strong> (weak lensing source catalogue,
+5 tomographic bins) × <strong>Simons Observatory</strong> (tSZ <em>y</em>-maps, 1.0 arcmin beam).</p>
+
+<!-- ─── REPO STRUCTURE ─── -->
+<h2 id="repo">Repository Structure (refactor-map)</h2>
+
+<div class="tree">
+<span class="dir">GODMAX/</span>  (branch: refactor-map)<br>
+├── <span class="dir">src/</span><br>
+│   ├── <span class="dir">godmax/</span>                   <span class="note">← core halo-model library</span><br>
+│   │   ├── <span class="file">base_class.py</span>           <span class="note">base class: cosmology, grids, integration utils</span><br>
+│   │   ├── <span class="file">get_radial_profiles.py</span>  <span class="note">Profiles class: HMF, concentrations, all halo profiles</span><br>
+│   │   ├── <span class="file">get_Pkzs.py</span>             <span class="note">3D P(k,z): FFTlog + 1h/2h assembly</span><br>
+│   │   ├── <span class="file">get_Cls.py</span>              <span class="note">angular C_ℓ: Limber projection + lensing kernels</span><br>
+│   │   ├── <span class="file">get_Xis.py</span>              <span class="note">real-space ξ(θ): gty (J₂), ξ± (J₀/J₄) via Hankel</span><br>
+│   │   ├── <span class="file">get_covs.py</span>             <span class="note">Gaussian + 1h non-Gaussian covariance matrices</span><br>
+│   │   ├── <span class="file">get_sim_maps.py</span>         <span class="note">lightcone HEALPix map pasting: y, kSZ, κ, galaxies</span><br>
+│   │   ├── <span class="file">get_B12_profile.py</span>      <span class="note">Battaglia+12/16 gas pressure profiles (alternative)</span><br>
+│   │   ├── <span class="file">get_OWLS_profile.py</span>     <span class="note">LeBrun+15 OWLS pressure profiles (alternative)</span><br>
+│   │   ├── <span class="file">hmf_symbolic.py</span>         <span class="note">symbolic σ(R,z) fits — differentiable HMF</span><br>
+│   │   ├── <span class="file">matter_pk_symbolic.py</span>   <span class="note">symbolic P_lin, P_halofit, D(z) — no CAMB needed</span><br>
+│   │   └── <span class="file">gaussian_tension.py</span>     <span class="note">MCMC chain tension metrics</span><br>
+│   ├── <span class="dir">helpers/</span><br>
+│   │   ├── <span class="file">constants.py</span>            <span class="note">PDG 2018 physical constants (CGS + astro)</span><br>
+│   │   ├── <span class="file">jax_cosmo_power.py</span>      <span class="note">jax_cosmo P(k) wrappers + halofit</span><br>
+│   │   └── <span class="file">twobessel.py</span>            <span class="note">two-Bessel transform (C_ℓ → real-space cov)</span><br>
+│   └── <span class="dir">mcfitjax/</span>                 <span class="note">JAX port of mcfit — differentiable Mellin-Hankel</span><br>
+│       ├── <span class="file">mcfit_jax.py</span>            <span class="note">core FFT-based multiplicative convolution</span><br>
+│       ├── <span class="file">transforms.py</span>           <span class="note">Hankel, SphericalBessel, DoubleBessel, FourierSine/Cos</span><br>
+│       ├── <span class="file">kernels.py</span>              <span class="note">Mellin kernels: Bessel, Tophat, Gauss variants</span><br>
+│       ├── <span class="file">cosmology_jax.py</span>        <span class="note">P2xi, xi2P, C2w, w2C, TophatVar (σ₈), GaussVar</span><br>
+│       └── <span class="file">loggamma_jax.py</span>         <span class="note">JAX log-Γ for Mellin kernel stability</span><br>
+├── <span class="dir">run_scripts/</span>               <span class="note">executable scripts for Fisher / MCMC runs</span><br>
+│   ├── <span class="dir">pge/</span>                    <span class="note">DESI LRG × LSST — Fourier space (C_ℓ)</span><br>
+│   │   ├── <span class="file">run_fisher.py</span>        <span class="note">Fisher forecast (JAX jacfwd, probe list via argv)</span><br>
+│   │   ├── <span class="file">sample_params_v5.py</span> <span class="note">MCMC: kk+gg+gk+ky+gy+ge, 24 vectorized chains</span><br>
+│   │   ├── <span class="dir">kk_gg_gk/</span>           <span class="note">SLURM scripts, ℓ_max ∈ {1000,2000,4000,8000}</span><br>
+│   │   ├── <span class="dir">gg_gk_ge/</span><br>
+│   │   ├── <span class="dir">kk_gg_gk_ge/</span><br>
+│   │   └── <span class="dir">ky_kk_gg_gy_gk_ge/</span>  <span class="note">full 6-probe run</span><br>
+│   ├── <span class="dir">dtai/</span>                   <span class="note">DES × ACT — Fourier + real space</span><br>
+│   │   └── <span class="file">sample_params_v10.py</span><span class="note"> ξ+, ξ−, galaxy×tSZ; pmap across GPUs</span><br>
+│   └── <span class="dir">delta/</span>                  <span class="note">DES real-space only: ξ+, ξ−, gty</span><br>
+├── <span class="dir">param_files/</span>               <span class="note">YAML parameter files per experiment</span><br>
+│   ├── <span class="dir">Pge/</span>        <span class="file">params.yaml</span>, <span class="file">priors.yaml</span><br>
+│   ├── <span class="dir">DESxACT/</span>    <span class="note">params_v0…v3, priors_v0…v3_wide</span><br>
+│   ├── <span class="dir">xCMASS/</span><br>
+│   ├── <span class="dir">xDESI/</span><br>
+│   └── <span class="file">params_default.yaml</span>     <span class="note">master default config</span><br>
+└── <span class="dir">notebooks/</span>               <span class="note">validation: compare_cosmosis, ACTxDES, Pge, xDESI, …</span>
+</div>
+
+<!-- ─── HALO MODEL ─── -->
+<h2 id="halomodel">Halo Model</h2>
+
+<p>
+GODMAX uses the standard halo-model decomposition: the total power spectrum is the sum of a
+<em>one-halo</em> (intra-halo) and a <em>two-halo</em> (inter-halo) term.
+</p>
+
+<h3>3D Power Spectrum</h3>
+
+<div class="eq-box">
+  <span class="eq-label">Eq. 29</span>
+  $$P^{AB}_\mathrm{tot}(k,z) = P^{AB}_\mathrm{1h}(k,z) + P^{AB}_\mathrm{2h}(k,z)$$
+</div>
+
+<div class="eq-box">
+  <span class="eq-label">Eq. 22 — 1-halo</span>
+  $$P^{AB}_\mathrm{1h}(k,z) = \int_{M_\mathrm{min}}^{M_\mathrm{max}} dM\, \frac{dn}{dM}
+    \int_{c_\mathrm{min}}^{c_\mathrm{max}} dc\; p(c|M)\; u^A(k,z,M,c)\; u^B(k,z,M,c)$$
+</div>
+
+<div class="eq-box">
+  <span class="eq-label">Eq. 25 — 2-halo</span>
+  $$P^{AB}_\mathrm{2h}(k,z) = b^A(k,z)\; b^B(k,z)\; P_\mathrm{lin}(k,z)$$
+</div>
+
+where integration limits are $M \in [10^{11}, 10^{16}]\,M_\odot/h$ and concentrations $c \in [2,8]$.
+
+<h3>Effective bias (2-halo weight)</h3>
+
+<div class="eq-box">
+  <span class="eq-label">Eq. 27–28</span>
+  $$b^A_\mathrm{eff}(k,z) = \int dM\, \frac{dn}{dM} \int dc\; p(c|M)\; b^\mathrm{lin}(M)\; u^A(k,z,M,c) + A(M_\mathrm{min})$$
+  $$A(M_\mathrm{min}) = 1 - \lim_{k\to 0}\int dM\, \frac{dn}{dM} \int dc\; p(c|M)\; b^\mathrm{lin}(M)\; u^A$$
+</div>
+
+<p>The mass conservation term $A(M_\mathrm{min})$ ensures the 2-halo term integrates correctly even when
+low-mass haloes are excluded.</p>
+
+<h3>3D Power Spectra Computed</h3>
+
+<div class="module-grid">
+  <div class="module-card">
+    <h4>$P^{mm}$ — Dark matter + baryons</h4>
+    <div class="tags"><span class="badge badge-blue">Pmm_tot_mat</span></div>
+    <ul style="margin-top:.6em;">
+      <li>Halofit or baryonification-suppressed</li>
+      <li>NFW or DMB profile $u_\mathrm{nfw/dmb}$</li>
+      <li>Used as backbone for 2h terms</li>
+    </ul>
+  </div>
+  <div class="module-card">
+    <h4>$P^{gm}$ — Galaxy × matter</h4>
+    <div class="tags"><span class="badge badge-amber">Pgm_tot_mat</span></div>
+    <ul style="margin-top:.6em;">
+      <li>1h + 2h with HOD galaxy profile</li>
+      <li>Suppression-corrected</li>
+    </ul>
+  </div>
+  <div class="module-card">
+    <h4>$P^{gg}$ — Galaxy auto</h4>
+    <div class="tags"><span class="badge badge-amber">Pgg_tot_mat</span></div>
+    <ul style="margin-top:.6em;">
+      <li>HOD: central + satellite terms</li>
+      <li>Handles $N_\mathrm{cen}^2$ vs $N_\mathrm{sat}^2$</li>
+    </ul>
+  </div>
+  <div class="module-card">
+    <h4>$P^{ym}$ — tSZ × matter</h4>
+    <div class="tags"><span class="badge badge-teal">Pym_tot_mat</span></div>
+    <ul style="margin-top:.6em;">
+      <li>Electron pressure profile $P_e$</li>
+      <li>Geometric mean suppression</li>
+    </ul>
+  </div>
+  <div class="module-card">
+    <h4>$P^{gy}$ — Galaxy × tSZ</h4>
+    <div class="tags"><span class="badge badge-teal">Pgy_tot_mat</span></div>
+    <ul style="margin-top:.6em;">
+      <li>Cross of HOD and pressure profiles</li>
+      <li>Optional response correction</li>
+    </ul>
+  </div>
+  <div class="module-card">
+    <h4>$P^{ge}$ — Galaxy-galaxy lensing</h4>
+    <div class="tags"><span class="badge badge-purple">Pge_tot_mat</span></div>
+    <ul style="margin-top:.6em;">
+      <li>Excess surface density $\Delta\Sigma$</li>
+      <li>Real-space probe (not $C_\ell$)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ─── GAS PROFILES ─── -->
+<h2 id="profiles">Gas &amp; Matter Profiles</h2>
+
+<h3>Total baryonic matter density</h3>
+<div class="eq-box">
+  <span class="eq-label">Eq. 2</span>
+  $$\rho_\mathrm{dmb}(r) = \rho_\mathrm{cga}(r) + \rho_\mathrm{gas}(r) + \rho_\mathrm{clm}(r)$$
+</div>
+<p>Central galaxy ($\rho_\mathrm{cga}$) + free gas ($\rho_\mathrm{gas}$) + "cold" (stellar/IGM) component
+($\rho_\mathrm{clm}$).</p>
+
+<h3>Gas density profile (flexible GNFW)</h3>
+<div class="eq-box">
+  <span class="eq-label">Eq. 7</span>
+  $$\rho_\mathrm{gas}(r) = \frac{\rho_{\mathrm{gas},0}}
+    {\left[1+\left(\dfrac{r}{\theta_\mathrm{co}\,r_{200c}}\right)\right]^{\!\beta}
+     \left[1+\left(\dfrac{r}{\theta_\mathrm{ej}\,r_{200c}}\right)^{\!\gamma}\right]^{(\delta-\beta)/\gamma}}$$
+</div>
+
+<h3>Mass-dependent slope $\beta$</h3>
+<div class="eq-box">
+  <span class="eq-label">Eq. 8–9</span>
+  $$\beta(M,z) = \frac{3\,(M_{200c}/M_c)^{\mu_\beta}}{1+(M_{200c}/M_c)^{\mu_\beta}}, \qquad
+    M_c = M_{c,0}(1+z)^{\nu_{M_c}}$$
+</div>
+
+<h3>Radius evolution with mass/redshift/concentration</h3>
+<div class="eq-box">
+  <span class="eq-label">Eq. 10</span>
+  $$\theta_{\mathrm{ej/co}} = \theta_{\mathrm{ej/co},0}
+    \left(\frac{M_{200c}}{M_\star}\right)^{\!\mu_{\mathrm{ej/co}}}
+    (1+z)^{\nu_{\mathrm{ej/co}}}\; c_{200c}^{-\eta_{\mathrm{ej/co}}}$$
+</div>
+
+<h3>Hydrostatic equilibrium → electron pressure</h3>
+<div class="eq-box">
+  <span class="eq-label">Eqs. 14–18</span>
+  $$\frac{1}{\rho_\mathrm{gas}}\frac{dP_\mathrm{tot}}{dr} = -G\frac{M_\mathrm{dmb}(<r)}{r^2}
+  \qquad (\text{exact HSE, solved numerically})$$
+  $$R_\mathrm{nt}(r,z) = \alpha_\mathrm{nt}\,f(z)\left(\frac{r}{r_{200c}}\right)^{n_\mathrm{nt}},
+  \qquad P_\mathrm{th} = P_\mathrm{tot}(1 - R_\mathrm{nt})$$
+  $$P_e(r) = \frac{2(X_H+1)}{5X_H+3}\,P_\mathrm{th}(r)$$
+</div>
+
+<div class="callout">
+  <strong>Key innovation:</strong> GODMAX solves the <em>exact</em> hydrostatic equilibrium ODE rather than
+  assuming a parametric GNFW pressure profile. This couples $P_e$ self-consistently to $\rho_\mathrm{dmb}$.
+</div>
+
+<!-- ─── ANGULAR POWER SPECTRA ─── -->
+<h2 id="angular">Angular Power Spectra</h2>
+
+<p>The Limber approximation ($k = (\ell+\tfrac{1}{2})/\chi$) is used throughout to project 3D
+power spectra to angular $C_\ell$.</p>
+
+<h3>General 1-halo and 2-halo angular terms</h3>
+<div class="eq-box">
+  <span class="eq-label">Eqs. 30–31</span>
+  $$C^{ij}_{AB;\,\mathrm{1h}}(\ell) = \int dz\;\frac{dV}{dz\,d\Omega}
+    \int dM\;\frac{dn}{dM}\int dc\;p(c|M)\;\bar{u}^{\,i}_A(\ell,M,z)\;\bar{u}^{\,j}_B(\ell,M,z)$$
+  $$C^{ij}_{AB;\,\mathrm{2h}}(\ell) = \int dz\;\frac{dV}{dz\,d\Omega}\;
+    b^i_A(\ell,z)\;b^j_B(\ell,z)\;P_\mathrm{lin}(k_\ell,z)$$
+</div>
+
+<h3>tSZ multipole-space kernel (with Gaussian beam)</h3>
+<div class="eq-box">
+  <span class="eq-label">Eq. 32</span>
+  $$\bar{u}^j_y(\ell,z,M,c) = b^j(\ell)\cdot\frac{4\pi r_{200c}}{\ell_{200c}^2}\cdot
+    \frac{\sigma_T}{m_e c^2}\int dx\;x^2\;P_e(x,z,M,c)\;\frac{\sin(\ell x/\ell_{200c})}{\ell x/\ell_{200c}}$$
+  $$b^j(\ell) = \exp\!\left[-\frac{\ell(\ell+1)\sigma_j^2}{2}\right], \quad
+    \sigma_j = \frac{\theta^\mathrm{FWHM,j}}{\sqrt{8\ln 2}}$$
+</div>
+
+<h3>Weak lensing convergence kernel</h3>
+<div class="eq-box">
+  <span class="eq-label">Eqs. 34–35</span>
+  $$\bar{u}^i_\kappa(\ell,z,M,c) = \frac{W^i_\kappa(z)}{\chi^2}\;u_\mathrm{dmb}(k_\ell,z,M,c)$$
+  $$W^i_\kappa(z) = \frac{3H_0^2\Omega_m}{2c^2}\;\frac{\chi}{a(\chi)}
+    \int_\chi^\infty d\chi'\;n^i_\kappa(z(\chi'))\;\frac{\chi'-\chi}{\chi'}$$
+</div>
+
+<h3>Real-space correlations (Hankel transforms via mcfitjax)</h3>
+<div class="eq-box">
+  <span class="eq-label">Eqs. 38–39</span>
+  $$\xi^i_{\gamma_t y}(\theta) = \int\frac{d\ell\,\ell}{2\pi}\;J_2(\ell\theta)\;C^i_{\kappa y}(\ell)$$
+  $$\xi^{ij}_\pm(\theta) = \int\frac{d\ell\,\ell}{2\pi}\;J_{0/4}(\ell\theta)\;C^{ij}_{\kappa\kappa}(\ell)$$
+</div>
+<p>These Hankel integrals are computed efficiently using the <code>mcfitjax</code> library
+(JAX port of <code>mcfit</code>) via Mellin-transform convolutions.</p>
+
+<!-- ─── SYSTEMATICS ─── -->
+<h2 id="systematics">Observational Systematics</h2>
+
+<h3>Intrinsic alignment (NLA model)</h3>
+<div class="eq-box">
+  <span class="eq-label">Eq. 41</span>
+  $$A_\mathrm{IA}(z) = -A_\mathrm{IA}(1+z)^{\eta_\mathrm{IA}}\;\frac{C_1\bar\rho_{m,0}}{D(z)}$$
+</div>
+
+<h3>Photometric redshift shift</h3>
+<div class="eq-box">
+  <span class="eq-label">Eq. 42</span>
+  $$n^i_\kappa(z) \;\longrightarrow\; n^i_\kappa(z - \Delta^i_z)$$
+</div>
+
+<h3>Multiplicative shear bias</h3>
+<div class="eq-box">
+  <span class="eq-label">Eqs. 43–44</span>
+  $$\xi^i_{\gamma_t y} \to (1+m^i)\,\xi^i_{\gamma_t y}, \qquad
+    \xi^{ij}_\pm \to (1+m^i)(1+m^j)\,\xi^{ij}_\pm$$
+</div>
+
+<!-- ─── MODULES ─── -->
+<h2 id="modules">Code Modules</h2>
+
+<div class="module-grid">
+  <div class="module-card" style="border-top:3px solid var(--accent5);">
+    <h4>Class hierarchy</h4>
+    <div class="path">Inheritance chain (each class calls super().__init__)</div>
+    <pre style="font-size:.8em; margin:.5em 0 0; background:#f8f9ff; color:#1a1d2e; padding:10px; border-radius:6px;">base_class
+ └── Profiles (get_radial_profiles)
+       └── get_Pkz (get_Pkzs)
+             └── get_Cl (get_Cls)
+                   ├── get_xi (get_Xis)
+                   └── get_cov (get_covs)</pre>
+    <div class="tags" style="margin-top:8px;"><span class="badge badge-purple">Design</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>base_class</h4>
+    <div class="path">src/godmax/base_class.py</div>
+    <ul>
+      <li><code>read_all_input()</code> — cosmology init (jax_cosmo), store all params</li>
+      <li><code>get_power_spectra_cosmo()</code> — $P_\mathrm{lin}$, $\chi(z)$, $D(z)$</li>
+      <li><code>logspace_trapezoidal_integral()</code> — log-grid trapz</li>
+      <li><code>get_rho_m/Ez/rho_c(z)</code> — JIT-compiled cosmological quantities</li>
+      <li><code>timing_decorator</code> — optional profiling</li>
+    </ul>
+    <div class="tags"><span class="badge badge-blue">Base</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>get_Pkzs</h4>
+    <div class="path">src/godmax/get_Pkzs.py</div>
+    <ul>
+      <li>Inherits <code>base_class</code></li>
+      <li><code>get_P_1h(jk, jz, probe1, probe2)</code> — JIT 1h term</li>
+      <li><code>get_b_2h(jk, jz, probe)</code> — bias integral</li>
+      <li><code>compute_ukz()</code> — Fourier-space profile dispatcher</li>
+      <li>Outputs: Pmm, Pym, Pgg, Pgm, Pge, Pgy — all shape $(n_k, n_z)$</li>
+    </ul>
+    <div class="tags"><span class="badge badge-blue">3D spectra</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>get_Cls</h4>
+    <div class="path">src/godmax/get_Cls.py</div>
+    <ul>
+      <li>Inherits <code>get_Pkzs</code></li>
+      <li>Limber projection: $k = (\ell+\tfrac{1}{2})/\chi$</li>
+      <li>Outputs: <code>Cl_kappa_kappa_tot_mat</code>, <code>Cl_kappa_y_tot_mat</code>, <code>Cl_gal_gal_tot_mat</code>, <code>Cl_gal_kappa_tot_mat</code>, <code>Cl_gal_y_tot_mat</code>, <code>Cl_y_y_tot_mat</code> <em>(extract-yy)</em>, <code>Pge_tot_mat</code></li>
+      <li>Tomographic bins via $n^i_\kappa$, $n^i_g$ source/lens dicts</li>
+      <li>Probe index table: <code>cached_power_spectra[p1,p2]</code> — 0=κ, 1=κ<sub>nfw</sub>, 2=g, 3=y</li>
+    </ul>
+    <div class="tags"><span class="badge badge-teal">Angular C_ℓ</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>get_covs</h4>
+    <div class="path">src/godmax/get_covs.py</div>
+    <ul>
+      <li>Gaussian covariance (Fang et al. 2024 method)</li>
+      <li>1-halo connected non-Gaussian term</li>
+      <li>Outputs: <code>covtot_dict</code> keyed by <code>probe_probe</code> + bin indices</li>
+      <li>Super-sample covariance <em>neglected</em></li>
+    </ul>
+    <div class="tags"><span class="badge badge-amber">Covariance</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>profiles</h4>
+    <div class="path">src/godmax/profiles.py</div>
+    <ul>
+      <li>Gas density GNFW: $\rho_\mathrm{gas}(r;M,z,c)$</li>
+      <li>Electron pressure: $P_e(r)$ from exact HSE</li>
+      <li>NFW dark matter: $\rho_\mathrm{nfw}(r)$</li>
+      <li>HOD profiles for central and satellite galaxies</li>
+    </ul>
+    <div class="tags"><span class="badge badge-purple">Profiles</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>get_xi (get_Xis.py)</h4>
+    <div class="path">src/godmax/get_Xis.py</div>
+    <ul>
+      <li>Inherits <code>get_Cl</code></li>
+      <li><code>gty_out_mat</code> — $\xi_{\gamma_t y}(\theta)$ via $J_2$ Hankel (nu=2)</li>
+      <li><code>xip_out_mat</code> — $\xi_+(\theta)$ via $J_0$ Hankel (nu=0)</li>
+      <li><code>xim_out_mat</code> — $\xi_-(\theta)$ via $J_4$ Hankel (nu=4)</li>
+      <li>Used in DES×ACT and delta run scripts</li>
+    </ul>
+    <div class="tags"><span class="badge badge-teal">Real space</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>Profiles (get_radial_profiles.py)</h4>
+    <div class="path">src/godmax/get_radial_profiles.py</div>
+    <ul>
+      <li>Inherits <code>base_class</code></li>
+      <li><code>setup_hmf()</code> — σ(M,z), ν, HMF</li>
+      <li><code>get_conc_Mz()</code> — c(M,z): Diemer15 / Prada12 / Duffy08</li>
+      <li><code>run_gas_calc()</code> — ρ_gas, n_e</li>
+      <li><code>run_pressure_calc()</code> — P_th, P_e (exact HSE)</li>
+      <li><code>run_stars_calc()</code> — HOD: N_cen, N_sat</li>
+      <li><code>run_dmb_calc()</code> — ρ_dmb = gas + CLM + CGA</li>
+    </ul>
+    <div class="tags"><span class="badge badge-purple">Profiles</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>Symbolic approximations</h4>
+    <div class="path">src/godmax/matter_pk_symbolic.py<br>src/godmax/hmf_symbolic.py</div>
+    <ul>
+      <li>Replace CLASS/CAMB with polynomial fits</li>
+      <li><code>symbolic_pklin(k,z)</code> — 70-coefficient P_lin fit</li>
+      <li><code>symbolic_pkhalofit(k,z)</code> — halofit via symbolic regression</li>
+      <li><code>symbolic_D(z)</code> — growth factor (3-coefficient)</li>
+      <li><code>symbolic_sigma(R,z)</code> — differentiable σ(R,z)</li>
+      <li>Enables full JAX gradient flow</li>
+    </ul>
+    <div class="tags"><span class="badge badge-gray">Differentiable</span></div>
+  </div>
+
+  <div class="module-card">
+    <h4>mcfitjax</h4>
+    <div class="path">src/mcfitjax/</div>
+    <ul>
+      <li><code>P2xi</code>, <code>xi2P</code> — 3D Fourier ↔ correlation</li>
+      <li><code>C2w</code>, <code>w2C</code> — angular Hankel transforms</li>
+      <li><code>TophatVar</code> — σ₈ computation</li>
+      <li>Mellin kernels: Bessel, Tophat, Gauss</li>
+      <li>JAX-differentiable; supports pmap/vmap</li>
+    </ul>
+    <div class="tags"><span class="badge badge-gray">Math utils</span></div>
+  </div>
+</div>
+
+<!-- ─── FLOWCHART ─── -->
+<h2 id="flowchart">Code Flowchart</h2>
+<p>End-to-end execution flow from YAML parameter files to posterior samples.</p>
+
+<div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TD
+    A["📄 params.yaml\n(cosmology, HOD, analysis)"] --> B
+    C["📄 priors.yaml\n(uniform / Gaussian bounds)"] --> D
+
+    B["base_class.__init__\nread_all_input()"] --> E
+    D["load_priors()\n→ prior_min/max dicts"] --> F
+
+    E["get_power_spectra_cosmo()\nP_lin(k,z), χ(z), D(z)"] --> G
+    E --> H
+
+    G["get_Pkzs.__init__\n3D power spectra\nPmm, Pym, Pgg, Pgm, Pgy, Pge\n[n_k × n_z]"] --> I
+    H["profiles.py\nρ_gas, P_e via exact HSE\nNFW, HOD profiles"] --> G
+
+    I["get_Cls.__init__\nLimber projection\nC_ℓ^gy, C_ℓ^ky, C_ℓ^gg\nC_ℓ^kk, C_ℓ^gk, Pge\n[n_ell × n_bins × n_bins]"] --> J
+
+    J["get_covs\nGaussian + 1h non-Gaussian\ncov_tot_dict"] --> K
+
+    F --> L
+    I --> L
+
+    K["Precision matrix\nC_tot^{-1}"] --> L
+
+    L["NumPyro model()\nbuild data vector d_vec\nMultivariateNormal(μ, Σ)"] --> M
+
+    M["NUTS sampler\ndense_mass=True\nmax_tree_depth=4\n2000 warmup + 3000 samples\n24 chains (vectorized)"] --> N
+
+    N["🔗 MCMC chains\n→ posterior samples\n→ save to disk (dill)"]
+
+    style A fill:#dbe4ff,stroke:#3b5bdb,color:#1a1d2e
+    style C fill:#dbe4ff,stroke:#3b5bdb,color:#1a1d2e
+    style B fill:#e6f9fc,stroke:#1098ad,color:#1a1d2e
+    style D fill:#e6f9fc,stroke:#1098ad,color:#1a1d2e
+    style E fill:#e6f9fc,stroke:#1098ad,color:#1a1d2e
+    style F fill:#e6f9fc,stroke:#1098ad,color:#1a1d2e
+    style G fill:#f8f0ff,stroke:#9c36b5,color:#1a1d2e
+    style H fill:#f8f0ff,stroke:#9c36b5,color:#1a1d2e
+    style I fill:#fff7e6,stroke:#e67700,color:#1a1d2e
+    style J fill:#fff7e6,stroke:#e67700,color:#1a1d2e
+    style K fill:#fff7e6,stroke:#e67700,color:#1a1d2e
+    style L fill:#d3f9d8,stroke:#2f9e44,color:#1a1d2e
+    style M fill:#d3f9d8,stroke:#2f9e44,color:#1a1d2e
+    style N fill:#1e2235,stroke:#3b5bdb,color:#cdd3e8
+</div>
+</div>
+
+<!-- ─── CONCEPT MAP ─── -->
+<h2 id="concept-map-sec">Concept Map</h2>
+<p>Interactive dependency network. Drag nodes to explore. Node colours indicate category.</p>
+
+<div id="concept-map"></div>
+
+<div class="network-legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3b5bdb"></div>Config / IO</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1098ad"></div>Cosmology</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9c36b5"></div>Profiles</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e67700"></div>Power Spectra</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2f9e44"></div>Inference</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c92a2a"></div>Observable</div>
+</div>
+
+<!-- ─── SAMPLING ─── -->
+<h2 id="sampling">Sampling &amp; Inference Setup</h2>
+
+<h3>NUTS configuration (refactor-map run scripts)</h3>
+<pre><code>nuts_kernel = numpyro.infer.NUTS(
+    observed_model_reparam,
+    step_size        = 3e-1,
+    init_strategy    = numpyro.infer.init_to_median,
+    dense_mass       = True,      # full mass matrix
+    max_tree_depth   = 4,
+    adapt_mass_matrix = True,
+    adapt_step_size   = True,
+)
+
+mcmc = numpyro.infer.MCMC(
+    nuts_kernel,
+    num_warmup   = 2000,
+    num_samples  = 3000,
+    num_chains   = 24,
+    chain_method = 'vectorized',   # pmap across GPUs
+    jit_model_args = True,
+)</code></pre>
+
+<h3>Fisher forecast (paper)</h3>
+<div class="callout note">
+  The <strong>paper</strong> uses a Fisher matrix forecast rather than full MCMC:
+  $$\mathbb{F}_{ab} = \frac{\partial \boldsymbol{\mu}^\top}{\partial p_a}\,\mathbf{C}^{-1}\,\frac{\partial \boldsymbol{\mu}}{\partial p_b}, \qquad \sigma^2(p_a) = (\mathbb{F}^{-1})_{aa}$$
+  Derivatives $\partial\boldsymbol{\mu}/\partial p_a$ are computed via <code>jax.jacfwd</code>
+  (forward-mode automatic differentiation). MCMC is available in the code but was not used for the paper results.
+</div>
+
+<h3>Model function structure</h3>
+<pre><code>def model():
+    # 1. Sample parameters from priors
+    Om0    = numpyro.sample('Om0',    dist.Uniform(prior_min, prior_max))
+    sigma8 = numpyro.sample('sigma8', dist.Uniform(...))
+    ...
+    Delta_z = numpyro.sample('Delta_z_bias_array',
+                             dist.Normal(mu_dz, sig_dz))   # Gaussian prior
+
+    # 2. Run get_Cls with sampled params
+    cl_obj = get_Cl(sim_params_dict_vary, halo_params_dict,
+                    analysis_dict, other_params_dict_vary)
+
+    # 3. Assemble data vector (probe × bin × ell)
+    Cl_all = jnp.zeros(n_data)
+    for probe, (b1, b2) in bin_comb_all:
+        Cl_all = Cl_all.at[...].set(cl_obj.Cl_probe_mat[:, b1-1, b2-1])
+
+    # 4. Likelihood
+    numpyro.sample('cl', dist.MultivariateNormal(Cl_all[ell_sel],
+                                                  cov_total))</code></pre>
+
+<!-- ─── CROSS-CORRELATIONS ─── -->
+<h2 id="probes">Cross-Correlation Coverage</h2>
+
+<div class="callout">
+  <strong>Summary:</strong> The code implements 6 probe types. The paper analyses only 2 of them
+  (κκ and κy). Galaxy-based probes (gg, gk, gy, ge) are implemented in the code and used in the
+  run scripts, but not described in the paper. The tSZ auto-spectrum (yy) is <em>not implemented anywhere</em>.
+</div>
+
+<table class="styled">
+  <thead>
+    <tr>
+      <th>Probe</th>
+      <th>Symbol</th>
+      <th>Description</th>
+      <th>In Paper?</th>
+      <th>In Code?</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>kk</code></td>
+      <td>$C_\ell^{\kappa\kappa}$ / $\xi_\pm$</td>
+      <td>Weak lensing convergence auto-correlation</td>
+      <td class="yes">✓ Yes</td>
+      <td class="yes">✓ Yes</td>
+      <td>Main probe; real-space ξ± via $J_0, J_4$ Hankel</td>
+    </tr>
+    <tr>
+      <td><code>ky</code></td>
+      <td>$C_\ell^{\kappa y}$ / $\xi_{\gamma_t y}$</td>
+      <td>CMB lensing × tSZ cross-correlation</td>
+      <td class="yes">✓ Yes</td>
+      <td class="yes">✓ Yes</td>
+      <td>Key probe; real-space via $J_2$ Hankel</td>
+    </tr>
+    <tr>
+      <td><code>gg</code></td>
+      <td>$C_\ell^{gg}$</td>
+      <td>Galaxy clustering auto-correlation</td>
+      <td class="no">✗ No</td>
+      <td class="yes">✓ Yes</td>
+      <td>HOD: central + satellite terms; run scripts include it</td>
+    </tr>
+    <tr>
+      <td><code>gk</code></td>
+      <td>$C_\ell^{g\kappa}$</td>
+      <td>Galaxy × CMB lensing convergence</td>
+      <td class="no">✗ No</td>
+      <td class="yes">✓ Yes</td>
+      <td>All $n_\mathrm{bins}^2$ bin pairs (no symmetry)</td>
+    </tr>
+    <tr>
+      <td><code>gy</code></td>
+      <td>$C_\ell^{gy}$</td>
+      <td>Galaxy × tSZ cross-correlation</td>
+      <td class="no">✗ No</td>
+      <td class="yes">✓ Yes</td>
+      <td>Implemented; used in run_scripts/pge</td>
+    </tr>
+    <tr>
+      <td><code>ge</code></td>
+      <td>$\Delta\Sigma(R)$</td>
+      <td>Galaxy-galaxy lensing (excess surface density)</td>
+      <td class="no">✗ No</td>
+      <td class="yes">✓ Yes</td>
+      <td>Real-space; shape $(n_\mathrm{bins}, n_k)$; added to data vector separately</td>
+    </tr>
+    <tr>
+      <td><code>yy</code></td>
+      <td>$C_\ell^{yy}$</td>
+      <td>tSZ auto-power spectrum</td>
+      <td class="no">✗ No</td>
+      <td class="part">~ Partial</td>
+      <td>Computed internally in <code>get_cov</code> for covariance noise estimation; no public <code>Cl_yy</code> attribute in <code>get_Cl</code></td>
+    </tr>
+    <tr>
+      <td><code>kSZ (map)</code></td>
+      <td>$T_\mathrm{kSZ}$</td>
+      <td>Kinematic SZ — lightcone map only</td>
+      <td class="no">✗ No</td>
+      <td class="part">~ Map only</td>
+      <td><code>get_sim_map.get_kSZ_healpix()</code> generates HEALPix map; no C_ℓ implemented</td>
+    </tr>
+    <tr>
+      <td><code>X-ray</code></td>
+      <td>$C_\ell^{X}$</td>
+      <td>X-ray cross-correlations</td>
+      <td class="no">✗ No</td>
+      <td class="no">✗ No</td>
+      <td>$n_e$ profile available; X-ray observable not built in any module</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Probe combinations in run scripts</h3>
+<table class="styled">
+  <thead><tr><th>Directory</th><th>Probes</th><th>ℓ_max variants</th></tr></thead>
+  <tbody>
+    <tr><td><code>pge/kk_gg_gk/</code></td><td>kk + gg + gk</td><td>1000, 2000, 4000, 8000</td></tr>
+    <tr><td><code>pge/gg_gk_ge/</code></td><td>gg + gk + ge</td><td>1000, 2000, 4000, 8000</td></tr>
+    <tr><td><code>pge/kk_gg_gk_ge/</code></td><td>kk + gg + gk + ge</td><td>1000, 2000, 4000, 8000</td></tr>
+    <tr><td><code>pge/run_fisher.py</code></td><td>any (argv)</td><td>configurable</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── PARAMETERS ─── -->
+<h2 id="params">Parameter Space</h2>
+
+<h3>Cosmological parameters (uniform priors)</h3>
+<div class="param-grid">
+  <div class="param-row"><span class="param-sym">Om0</span><span class="param-desc">Total matter density (fiducial 0.3)</span></div>
+  <div class="param-row"><span class="param-sym">sigma8</span><span class="param-desc">Matter fluctuation amplitude (fiducial 0.8)</span></div>
+  <div class="param-row"><span class="param-sym">Ob0</span><span class="param-desc">Baryon density (fiducial 0.05)</span></div>
+  <div class="param-row"><span class="param-sym">h</span><span class="param-desc">Hubble constant / 100 (fiducial 0.672)</span></div>
+  <div class="param-row"><span class="param-sym">ns</span><span class="param-desc">Spectral index (fiducial 0.965)</span></div>
+</div>
+
+<h3>Baryon / gas feedback parameters (uniform priors)</h3>
+<div class="param-grid">
+  <div class="param-row"><span class="param-sym">theta_ej_0</span><span class="param-desc">Ejection radius at pivot mass — $\mathcal{U}[1, 8]$</span></div>
+  <div class="param-row"><span class="param-sym">nu_theta_ej_z</span><span class="param-desc">Redshift slope of θ_ej — $\mathcal{U}[-5, 5]$</span></div>
+  <div class="param-row"><span class="param-sym">nu_theta_ej_M</span><span class="param-desc">Mass slope of θ_ej — $\mathcal{U}[-5, 0]$</span></div>
+  <div class="param-row"><span class="param-sym">mu_beta</span><span class="param-desc">Gas slope transition — $\mathcal{U}[0, 5]$</span></div>
+  <div class="param-row"><span class="param-sym">log10_Mc0</span><span class="param-desc">Characteristic gas mass — $\mathcal{U}[10, 16]$</span></div>
+  <div class="param-row"><span class="param-sym">alpha_nt</span><span class="param-desc">Non-thermal pressure amplitude — $\mathcal{U}[0.01, 0.5]$</span></div>
+</div>
+
+<h3>Galaxy / HOD parameters (uniform priors)</h3>
+<div class="param-grid">
+  <div class="param-row"><span class="param-sym">log10M1_fshmr</span><span class="param-desc">Stellar-to-halo mass pivot</span></div>
+  <div class="param-row"><span class="param-sym">beta_fshmr</span><span class="param-desc">Low-mass SHMR slope</span></div>
+  <div class="param-row"><span class="param-sym">delta_fshmr</span><span class="param-desc">High-mass SHMR transition</span></div>
+  <div class="param-row"><span class="param-sym">siglogMstar_Ncen</span><span class="param-desc">Scatter in central galaxy occupation</span></div>
+  <div class="param-row"><span class="param-sym">alphasat_Nsat</span><span class="param-desc">Satellite occupation power-law slope</span></div>
+</div>
+
+<h3>Systematic parameters (Gaussian priors)</h3>
+<div class="param-grid">
+  <div class="param-row"><span class="param-sym">A_IA, eta_IA</span><span class="param-desc">Intrinsic alignment (NLA model)</span></div>
+  <div class="param-row"><span class="param-sym">Delta_z_bias[i]</span><span class="param-desc">Photo-z shift per bin; $\sigma = 10^{-3}$</span></div>
+  <div class="param-row"><span class="param-sym">mult_shear[i]</span><span class="param-desc">Multiplicative shear bias; $\sigma = 3\times10^{-3}$</span></div>
+</div>
+
+<h3>Validation simulations</h3>
+<table class="styled">
+  <thead><tr><th>Simulation</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>ANTILLES (200 runs)</td><td>Profile fitting — varying AGN feedback; 100 Mpc/h box, 256³ particles</td></tr>
+    <tr><td>Illustris-TNG300</td><td>$Y_{200c}^\mathrm{3D} - c_{200c}$ secondary halo property correlations</td></tr>
+    <tr><td>BAHAMAS</td><td>Observationally consistent AGN feedback parameter range</td></tr>
+  </tbody>
+</table>
+
+<br><br>
+
+<!-- ─── C_yy EXTRACTION ─── -->
+<h2 id="yy-extraction">tSZ Auto-Power Spectrum — C_yy Extraction</h2>
+
+<p>
+The <code>extract-yy</code> branch moves the tSZ auto angular power spectrum $C_\ell^{yy}$ out of
+<code>get_cov</code>'s internal calculation and into <code>get_Cl</code>, so that it is available
+as a first-class output — alongside $C_\ell^{\kappa\kappa}$, $C_\ell^{\kappa y}$, etc. — whenever
+<code>get_Cl</code> is instantiated with <code>model_tSZ=True</code>.
+</p>
+
+<div class="callout science">
+  <strong>Why this matters:</strong> Previously, getting $C_\ell^{yy}$ required instantiating the full
+  covariance class (<code>get_cov</code>), which is significantly slower. The extraction makes it trivial
+  to compute just the signal spectrum for plotting, likelihood evaluation, or external comparisons without
+  paying the cost of the trispectrum calculation.
+</div>
+
+<!-- ─── PHYSICS ─── -->
+<h3>Physics</h3>
+
+<h4 style="margin:.9em 0 .3em; color:var(--accent2);">3D tSZ auto-power spectrum</h4>
+<p>
+The 3D Compton-$y$ power spectrum is split into a one-halo and two-halo term in the usual halo-model way:
+</p>
+<div class="eq-box">
+  $$P_{yy}(k,z) \;=\; P_{yy}^{1h}(k,z) \;+\; P_{yy}^{2h}(k,z)$$
+  $$P_{yy}^{1h}(k,z) = \int d\ln M\;\frac{dn}{d\ln M}\;\bigl|\tilde{u}_y(k,M,z)\bigr|^2$$
+  $$P_{yy}^{2h}(k,z) = \left[\int d\ln M\;\frac{dn}{d\ln M}\;b(M,z)\;\tilde{u}_y(k,M,z)\right]^2
+    P_\mathrm{lin}(k,z) \;\equiv\; b_y^2(k,z)\;P_\mathrm{lin}(k,z)$$
+</div>
+<p>
+where $\tilde{u}_y(k,M,z)$ is the Fourier transform of the 3D Compton-$y$ profile (pressure profile
+converted via $y = \tfrac{\sigma_T}{m_e c^2}\int P_e\,dl$), evaluated on the code's $(n_k, n_z)$ grid.
+</p>
+
+<h4 style="margin:.9em 0 .3em; color:var(--accent2);">Beam and Limber-space kernel</h4>
+<p>
+Before Limber projection, the 3D power is evaluated at $k = (\ell+\tfrac{1}{2})/\chi$ and multiplied by
+the squared Gaussian beam $B_\ell^2$ (beam is applied <em>twice</em> for an auto-correlation):
+</p>
+<div class="eq-box">
+  $$\tilde{P}_{yy}^{\ell z}(\ell,z) \;=\; B_\ell^2\;\cdot\;P_{yy}\!\left(\frac{\ell+\tfrac{1}{2}}{\chi(z)},\,z\right),
+    \qquad B_\ell = \exp\!\left[-\tfrac{1}{2}\ell(\ell+1)\sigma_\mathrm{beam}^2\right]$$
+</div>
+<p>This is stored in <code>Pkyy_lz_mat</code> (shape <code>(nell, nz)</code>) and cached via a 2D log-interpolator.</p>
+
+<h4 style="margin:.9em 0 .3em; color:var(--accent2);">Limber projection → $C_\ell^{yy}$</h4>
+<p>
+The tSZ line-of-sight window function is simply $W_y(z) = 1/(1+z)$, and the angular power spectrum
+is obtained by the standard Limber integral:
+</p>
+<div class="eq-box">
+  $$C_\ell^{yy} \;=\; \int_0^{z_\mathrm{max}} dz\;\frac{d\chi}{dz}\;
+    \frac{W_y^2(z)}{\chi^2(z)}\;\tilde{P}_{yy}^{\ell z}(\ell,z),
+    \qquad W_y(z) = \frac{1}{1+z}$$
+</div>
+<p>
+This is the <em>same integral</em> as for every other probe combination — implemented in
+<code>get_Cl_tot(jb1, jb2, probe1, probe2)</code>. By filling <code>cached_power_spectra[3,3]</code>
+with $\tilde{P}_{yy}^{\ell z}$, calling <code>get_Cl_tot(0, 0, 3, 3)</code> gives $C_\ell^{yy}$
+through exactly the same code path as $C_\ell^{\kappa\kappa}$ = <code>get_Cl_tot(jb1,jb2,0,0)</code>.
+</p>
+
+<div class="card" style="margin:1.2em 0;">
+  <strong>Probe index table — <code>cached_power_spectra[p1, p2, nell, nz_for_Cls]</code></strong>
+  <table style="width:100%; margin-top:10px; border-collapse:collapse; font-size:.9em;">
+    <thead><tr style="background:#eef1fb;">
+      <th style="padding:7px 12px; text-align:left;">Index</th>
+      <th style="padding:7px 12px; text-align:left;">Probe</th>
+      <th style="padding:7px 12px; text-align:left;">Attribute filled</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:6px 12px;"><code>0</code></td><td>$\kappa$ (baryonified matter)</td><td><code>Pkmm_lz_mat</code></td></tr>
+      <tr style="background:#f8f9ff;"><td style="padding:6px 12px;"><code>1</code></td><td>$\kappa_\mathrm{nfw}$ (NFW only)</td><td><code>Pkmm_nfw_lz_mat</code></td></tr>
+      <tr><td style="padding:6px 12px;"><code>2</code></td><td>$g$ (galaxies)</td><td><code>Pkgm_lz_mat</code>, <code>Pkgg_lz_mat</code>, …</td></tr>
+      <tr style="background:#f8f9ff;"><td style="padding:6px 12px;"><code>3</code></td><td>$y$ (tSZ, <em>extract-yy</em>)</td><td><code>Pkyy_lz_mat</code> — beam² baked in</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ─── BEFORE / AFTER ─── -->
+<h3>Before vs After</h3>
+
+<h4 style="margin:.9em 0 .3em; color:var(--accent3);">Previous implementation (inside <code>get_cov</code>)</h4>
+<p>
+$C_\ell^{yy}$ was computed privately during <code>get_cov.__init__</code> via two dedicated methods
+that did <em>not</em> share code with the rest of the Limber pipeline:
+</p>
+<ul style="margin:.5em 0 .8em 1.5em; line-height:1.9; font-size:.93em;">
+  <li><code>get_Pyy_interp(jl, jz)</code> — beam-convolved $\tilde{P}_{yy}$ at $(\ell_j, z_j)$, <em>not stored</em> as a class attribute</li>
+  <li><code>get_Cl_y_y_tot(jl)</code> — dedicated scalar Limber integral, separate from <code>get_Cl_tot</code></li>
+  <li><code>get_cov</code> inherited from <code>get_yy</code>, which was just an alias <code>get_yy = get_Cl</code> inside <code>extract_yy.py</code></li>
+</ul>
+<pre><code># Old usage — required instantiating get_cov to get C_yy
+from godmax.get_covs import get_cov   # (inherited from get_yy alias)
+
+cov = get_cov(sim_params_dict, halo_params_dict, analysis_dict, other_params_dict)
+Cl_yy = np.array(cov.Cl_y_y_tot_mat)   # only available here</code></pre>
+
+<div class="callout warn">
+  <strong>Problems with the old approach:</strong>
+  <ul style="margin:.4em 0 0 1.2em; line-height:1.8;">
+    <li>Getting $C_\ell^{yy}$ required the full (slow) covariance computation</li>
+    <li><code>extract_yy.py</code> was a superfluous wrapper file with just one alias line</li>
+    <li>Two separate Limber integral implementations for the same physics — maintenance burden</li>
+    <li><code>Pkyy_lz_mat</code> was never stored as an attribute — no way to inspect the beam-convolved 3D spectrum</li>
+  </ul>
+</div>
+
+<h4 style="margin:.9em 0 .3em; color:var(--accent4);">New implementation (<code>extract-yy</code> branch)</h4>
+<p>
+$C_\ell^{yy}$ is now computed inside <code>get_Cl.__init__</code> under the
+<code>if self.model_tSZ:</code> block, using the same <code>get_Cl_tot</code> path as every other probe:
+</p>
+
+<pre><code># Inside get_Cl.__init__  (src/godmax/get_Cls.py)
+if self.model_tSZ:
+    # 1. Compute P_yy(k,z) = 1h + 2h
+    vmapped_func_yy  = get_vmapped_func_warg(self.get_P_1h, 2, 4)
+    Pyy_1h_kz_mat    = vmapped_func_yy(jnp.arange(self.nk), jnp.arange(self.nz), 3, 3).T
+    Pyy_2h_kz_mat    = self.by_kz_mat ** 2 * self.plin_kz_mat
+    self.Pyy_tot_kz_mat = Pyy_1h_kz_mat + Pyy_2h_kz_mat   # (nk, nz)
+
+    # 2. Evaluate at Limber k=(ℓ+0.5)/χ, apply beam², build 2D interpolator
+    self.Pkyy_lz_mat = get_vmapped_func(self.get_Pkyy_lz, 2)(
+        jnp.arange(self.nell), jnp.arange(self.nz)).T       # (nell, nz)
+    self.logPkyylz_2d_interp = interpax.Interpolator2D(
+        jnp.log(self.ell_array), self.z_array,
+        jnp.log(self.Pkyy_lz_mat), extrap=True)
+
+    # 3. Fill unified cache — same structure as κκ, κy, gg, …
+    self.cached_power_spectra = self.cached_power_spectra.at[3, 3].set(
+        vmap(lambda l: jnp.exp(self.logPkyylz_2d_interp(l, self.z_array_for_Cls)))(log_ell))
+
+    # 4. Limber integral via the same get_Cl_tot path
+    self.Cl_y_y_tot_mat = self.get_Cl_tot(0, 0, 3, 3)      # (nell,)</code></pre>
+
+<p>
+The helper method <code>get_Pkyy_lz(jl, jz)</code> (JIT-compiled) interpolates $P_{yy}$ onto the
+Limber wavenumber and applies the beam:
+</p>
+<pre><code>@partial(jit, static_argnums=(0,))
+def get_Pkyy_lz(self, jl, jz):
+    ell      = self.ell_array[jl]
+    chi_z    = self.chi_array[jz]
+    Bl       = jnp.exp(-0.5 * ell * (ell + 1) * self.sig_beam**2)
+    k_ell    = (ell + 0.5) / jnp.clip(chi_z, 1.0)
+    Pkz_ell  = jnp.exp(jnp.interp(
+        jnp.log(k_ell),
+        jnp.log(self.kPk_array),
+        jnp.log(self.Pyy_tot_kz_mat[:, jz])))
+    return Bl**2 * Pkz_ell                   # beam² for auto-correlation</code></pre>
+
+<div class="callout note">
+  <strong>File-level changes:</strong>
+  <ul style="margin:.4em 0 0 1.2em; line-height:1.8;">
+    <li><code>src/godmax/extract_yy.py</code> — <strong>deleted</strong> (was just <code>get_yy = get_Cl</code>)</li>
+    <li><code>src/godmax/__init__.py</code> — emptied (removed the <code>get_yy</code> import)</li>
+    <li><code>src/godmax/get_Cls.py</code> — added P_yy 3D calc, <code>Pkyy_lz_mat</code>, <code>cached_power_spectra[3,3]</code>, <code>get_Pkyy_lz</code> method, and <code>Cl_y_y_tot_mat</code></li>
+    <li><code>src/godmax/get_covs.py</code> — changed <code>class get_cov(get_yy)</code> → <code>class get_cov(get_Cl)</code>; simplified <code>else</code> branch to <code>self.__dict__.update(Cl_obj.__dict__)</code></li>
+  </ul>
+</div>
+
+<!-- ─── HOW C_yy IS USED IN COVARIANCE ─── -->
+<h3>How $C_\ell^{yy}$ feeds into the covariance</h3>
+<p>Inside <code>get_cov</code>, the yy signal is used in two places:</p>
+<div class="card">
+  <ol style="margin:.3em 0 0 1.2em; line-height:2;">
+    <li>
+      <strong>Gaussian covariance (Knox formula)</strong><br>
+      <code>Cl_result_dict['yy']['bin_0_0']['tot_plus_noise_ellsurvey']</code>
+      $= C_\ell^{yy} + N_\ell^{yy}$ is used to build the diagonal Gaussian covariance:
+      $$\mathrm{Cov}^G_{\ell\ell'} = \frac{2\delta_{\ell\ell'}}{(2\ell+1)\,f_\mathrm{sky}\,\Delta\ell}
+        \left(C_\ell^{yy} + N_\ell^{yy}\right)^2$$
+    </li>
+    <li>
+      <strong>Non-Gaussian trispectrum (1-halo)</strong><br>
+      <code>ul_dict['y_0']</code> = $\tilde{u}_y(\ell)\,W_y/\chi^2$ is the Limber-projected tSZ profile kernel, used to form the connected 4-point term:
+      $$T^{1h}(\ell_1,\ell_2) = \int dz\;\frac{d\chi}{dz}\,\chi^{-6}
+        \int d\ln M\;\frac{dn}{d\ln M}\;\bigl|\tilde{u}_y(\ell_1)\bigr|^2\bigl|\tilde{u}_y(\ell_2)\bigr|^2$$
+    </li>
+  </ol>
+</div>
+
+<!-- ─── USAGE ─── -->
+<h3>Usage</h3>
+<p>With the new implementation, $C_\ell^{yy}$ is obtained directly from <code>get_Cl</code>:</p>
+<pre><code>import numpy as np
+from godmax.get_Cls  import get_Cl
+from godmax.get_covs import get_cov
+
+# ── 1. Instantiate get_Cl (computes C_yy automatically when model_tSZ=True) ──
+cl = get_Cl(sim_params_dict, halo_params_dict, analysis_dict, other_params_dict)
+
+# ── 2. Access the outputs ──
+Cl_yy      = np.array(cl.Cl_y_y_tot_mat)    # (nell,)   angular C_yy
+Pyy_3d     = np.array(cl.Pyy_tot_kz_mat)    # (nk, nz)  3D P_yy = 1h + 2h
+Pkyy_limber= np.array(cl.Pkyy_lz_mat)       # (nell, nz) beam²·P_yy at Limber k
+
+# Also available (unchanged):
+Cl_ky      = np.array(cl.Cl_kappa_y_tot_mat)     # (nbins, nell)
+Cl_kk      = np.array(cl.Cl_kappa_kappa_tot_mat) # (nbins, nbins, nell)
+
+# ── 3. Reuse get_Cl object for covariance (avoids recomputation) ──
+cov = get_cov(sim_params_dict, halo_params_dict, analysis_dict, other_params_dict,
+              Cl_obj=cl)
+
+# Access covariance matrices
+covG  = cov.covG_dict ['yy_yy']['bin_0_0_0_0']   # (nell, nell) Gaussian
+covNG = cov.covNG_dict['yy_yy']['bin_0_0_0_0']   # (nell, nell) non-Gaussian
+covtot= cov.covtot_dict['yy_yy']['bin_0_0_0_0']  # (nell, nell) total</code></pre>
+
+<div class="callout note">
+  <strong>Things to note when using C_yy:</strong>
+  <ul style="margin:.4em 0 0 1.2em; line-height:1.9; font-size:.93em;">
+    <li>Requires <code>model_tSZ: true</code> in your <code>analysis_dict</code> (or param YAML), otherwise the <code>if self.model_tSZ:</code> block is skipped and <code>Cl_y_y_tot_mat</code> will not exist</li>
+    <li>The beam ($\sigma_\mathrm{beam}$) is set via <code>sim_params_dict</code>; for no beam, set <code>sig_beam = 0</code></li>
+    <li><code>Cl_y_y_tot_mat</code> has shape <code>(nell,)</code> — it is a <em>scalar</em> probe (no tomographic bins), unlike $C_\ell^{\kappa\kappa}$ which has shape <code>(nbins, nbins, nell)</code></li>
+    <li>The yy noise spectrum must be provided via <code>analysis_dict['yy_noise_ell_fname']</code> pointing to a two-column file (ell, $N_\ell^{yy}$); this is only used in the covariance, not in the signal</li>
+    <li>Passing <code>Cl_obj=cl</code> to <code>get_cov</code> reuses the pre-computed <code>get_Cl</code> and skips recomputation — always do this to save time</li>
+  </ul>
+</div>
+
+<br><br>
+
+</main>
+</div>
+
+<!-- ─── SCRIPTS ─── -->
+<script>
+// ── Mermaid ──────────────────────────────────────────────────────────────────
+mermaid.initialize({ startOnLoad: true, theme: 'neutral', flowchart: { curve: 'basis', padding: 20 } });
+
+// ── Active nav highlight ──────────────────────────────────────────────────────
+const sections = document.querySelectorAll('h2[id], h3[id]');
+const navLinks  = document.querySelectorAll('nav a[href^="#"]');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+
+// ── vis.js Concept Map ────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const C = {
+    config:   '#3b5bdb',
+    cosmo:    '#1098ad',
+    profile:  '#9c36b5',
+    spectra:  '#e67700',
+    infer:    '#2f9e44',
+    obs:      '#c92a2a',
+  };
+  const nodes = new vis.DataSet([
+    // Config / IO
+    { id:1,  label:'params.yaml\n(cosmo, HOD,\nanalysis)',  color:{background:'#dbe4ff',border:C.config},  font:{color:'#1a1d2e'}, shape:'box',    group:'config'  },
+    { id:2,  label:'priors.yaml\n(uniform/Gaussian)',        color:{background:'#dbe4ff',border:C.config},  font:{color:'#1a1d2e'}, shape:'box',    group:'config'  },
+
+    // Cosmology
+    { id:3,  label:'base_class\nread_all_input()',           color:{background:'#d3f9f9',border:C.cosmo},   font:{color:'#1a1d2e'}, shape:'ellipse',group:'cosmo'   },
+    { id:4,  label:'jax_cosmo\nP_lin, χ(z), D(z)',          color:{background:'#d3f9f9',border:C.cosmo},   font:{color:'#1a1d2e'}, shape:'ellipse',group:'cosmo'   },
+    { id:5,  label:'mcfitjax\nHankel transforms',           color:{background:'#d3f9f9',border:C.cosmo},   font:{color:'#1a1d2e'}, shape:'ellipse',group:'cosmo'   },
+
+    // Profiles
+    { id:6,  label:'profiles.py\nρ_gas, P_e\n(exact HSE)',  color:{background:'#f3d9fa',border:C.profile}, font:{color:'#1a1d2e'}, shape:'ellipse',group:'profile' },
+    { id:7,  label:'NFW profile\nρ_nfw(r)',                 color:{background:'#f3d9fa',border:C.profile}, font:{color:'#1a1d2e'}, shape:'ellipse',group:'profile' },
+    { id:8,  label:'HOD\nN_cen, N_sat\n(SHMR)',             color:{background:'#f3d9fa',border:C.profile}, font:{color:'#1a1d2e'}, shape:'ellipse',group:'profile' },
+
+    // 3D Power Spectra
+    { id:9,  label:'get_Pkzs\n3D P(k,z)',                   color:{background:'#ffe8cc',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'database',group:'spectra'},
+    { id:10, label:'Pmm (matter)',                           color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:11, label:'Pym (tSZ×mat)',                         color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:12, label:'Pgg (galaxy²)',                         color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:13, label:'Pgy (galaxy×tSZ)',                      color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:14, label:'Pge (gal-lensing)',                     color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+
+    // Angular C_ell
+    { id:15, label:'get_Cls\nLimber projection',            color:{background:'#ffe8cc',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'database',group:'spectra'},
+    { id:16, label:'C_ℓ^{gy}',                             color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:17, label:'C_ℓ^{ky}',                             color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:18, label:'C_ℓ^{gg}',                             color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:19, label:'C_ℓ^{kk}',                             color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+    { id:20, label:'C_ℓ^{gk}',                             color:{background:'#fff4e6',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'box',    group:'spectra' },
+
+    // Covariance
+    { id:21, label:'get_covs\nGauss + 1h nonG',             color:{background:'#ffe8cc',border:C.spectra}, font:{color:'#1a1d2e'}, shape:'database',group:'spectra'},
+
+    // Inference
+    { id:22, label:'NumPyro model()\ndata vector + likelihood', color:{background:'#d3f9d8',border:C.infer}, font:{color:'#1a1d2e'}, shape:'ellipse',group:'infer'},
+    { id:23, label:'NUTS sampler\n24 chains vectorized',    color:{background:'#d3f9d8',border:C.infer},   font:{color:'#1a1d2e'}, shape:'ellipse',group:'infer' },
+    { id:24, label:'JAX jacfwd\nFisher matrix',             color:{background:'#d3f9d8',border:C.infer},   font:{color:'#1a1d2e'}, shape:'ellipse',group:'infer' },
+
+    // Observables
+    { id:25, label:'ξ_± (shear auto)',                      color:{background:'#ffe3e3',border:C.obs},     font:{color:'#1a1d2e'}, shape:'box',    group:'obs'    },
+    { id:26, label:'ξ_γt_y (shear×tSZ)',                   color:{background:'#ffe3e3',border:C.obs},     font:{color:'#1a1d2e'}, shape:'box',    group:'obs'    },
+    { id:27, label:'MCMC chains\nposterior samples',        color:{background:'#1e2235',border:C.infer},   font:{color:'#cdd3e8'}, shape:'ellipse',group:'infer'  },
+  ]);
+
+  const edges = new vis.DataSet([
+    // params → base_class
+    {from:1, to:3, label:'load'}, {from:2, to:22, label:'priors'},
+    // cosmo chain
+    {from:3, to:4}, {from:4, to:9},
+    // profiles → 3D spectra
+    {from:6, to:9, label:'P_e u_y'}, {from:7, to:9, label:'u_nfw'},
+    {from:8, to:9, label:'u_gal'},
+    // 3D spectra breakdown
+    {from:9, to:10}, {from:9, to:11}, {from:9, to:12}, {from:9, to:13}, {from:9, to:14},
+    // 3D → angular
+    {from:9, to:15, label:'Limber'}, {from:3, to:15, label:'n(z)'},
+    {from:15, to:16},{from:15, to:17},{from:15, to:18},{from:15, to:19},{from:15, to:20},
+    // angular → real-space via mcfitjax
+    {from:5, to:25, label:'J₀/J₄'}, {from:5, to:26, label:'J₂'},
+    {from:19, to:5}, {from:17, to:5},
+    // covariance
+    {from:15, to:21, label:'Cl fid'}, {from:9, to:21, label:'1h 4pt'},
+    // inference
+    {from:15, to:22, label:'theory μ'}, {from:21, to:22, label:'Σ'},
+    {from:22, to:23}, {from:22, to:24},
+    {from:23, to:27},
+  ]);
+
+  const container = document.getElementById('concept-map');
+  const data      = { nodes, edges };
+  const options   = {
+    layout:  { improvedLayout: true },
+    physics: { stabilization: { iterations: 200 }, barnesHut: { gravitationalConstant: -4000, springLength: 120 } },
+    edges:   { arrows: 'to', color: '#94a3b8', font: { size: 10, color: '#6b7280' }, smooth: { type: 'curvedCW', roundness: 0.2 } },
+    nodes:   { font: { size: 12 }, borderWidth: 2, margin: 8 },
+    interaction: { hover: true, zoomView: true, dragView: true },
+  };
+  new vis.Network(container, data, options);
+});
+</script>
+</body>
+</html>

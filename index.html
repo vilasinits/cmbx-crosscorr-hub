@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMBx Cross-Correlation Hub</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0C1520; --bg2:#101C2C; --panel:#182334; --panel2:#1E2E42;
+    --border:#253650; --border2:#1E2C42;
+    --text:#D8E6F5; --text2:#A0BAD5; --muted:#607890;
+    --blue:#5AAEE0; --green:#4DC87E; --amber:#F0A840; --purple:#A878E8; --teal:#38C8D8; --red:#E06070;
+    --blue-mid:#1E3C5A; --green-mid:#143828; --amber-mid:#3A2408; --purple-mid:#261444; --teal-mid:#0E2830;
+    --hdr:#070F1A; --hdr-text:rgba(220,235,250,.9); --hdr-muted:rgba(170,200,230,.45);
+    --sans:'Inter',system-ui,-apple-system,sans-serif; --mono:'Cascadia Code','Fira Code','JetBrains Mono',ui-monospace,monospace;
+    --r:10px; --r-lg:14px; --sh:0 2px 14px rgba(0,0,0,.35); --sh2:0 8px 28px rgba(0,0,0,.45);
+    --hh:60px;
+  }
+  html { scroll-behavior:smooth; scroll-padding-top: calc(var(--hh) + 18px); }
+  body { font-family: var(--sans); background: linear-gradient(180deg, var(--bg), #0a1320 35%, var(--bg2)); color: var(--text); line-height: 1.72; font-size: 15px; padding-top: var(--hh); }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size:.83em; background: rgba(90,174,224,.12); color: var(--blue); border-radius:6px; padding:2px 6px; }
+  .site-header {
+    position: fixed; top:0; left:0; right:0; z-index:1000; height:var(--hh);
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    padding:0 28px; background: rgba(7,15,26,.9); backdrop-filter: blur(10px);
+    border-bottom:1px solid rgba(90,174,224,.15);
+  }
+  .site-logo { font-weight: 800; color: var(--hdr-text); letter-spacing:-.01em; }
+  .site-logo em { color: var(--blue); font-style:normal; }
+  .site-nav { display:flex; gap:8px; overflow:auto; scrollbar-width:none; }
+  .site-nav::-webkit-scrollbar { display:none; }
+  .site-nav a { color: var(--hdr-muted); padding:6px 12px; border-radius:8px; font-size:13px; font-weight:600; white-space:nowrap; }
+  .site-nav a:hover, .site-nav a.active { color: var(--hdr-text); background: rgba(90,174,224,.12); text-decoration:none; }
+  .container { width:min(1120px, calc(100% - 40px)); margin:0 auto; }
+  .section { padding: 72px 0; border-bottom:1px solid var(--border2); }
+  .hero { padding: 34px 0 28px; }
+  .eyebrow { color: var(--blue); text-transform: uppercase; font-size: 11px; letter-spacing:.12em; font-weight:700; margin-bottom:8px; }
+  h1 { font-size: clamp(2.3rem, 6vw, 4.2rem); line-height:1.05; font-weight:800; letter-spacing:-.03em; margin-bottom: 14px;
+       background: linear-gradient(135deg, var(--text) 35%, var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .hero-sub { color: var(--text2); font-size: 1.07rem; max-width: 820px; }
+  .badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+  .badge { display:inline-block; padding:4px 11px; border-radius:999px; font-size:.76rem; font-weight:700; }
+  .b-blue { background:var(--blue-mid); color:var(--blue); }
+  .b-green { background:var(--green-mid); color:var(--green); }
+  .b-amber { background:var(--amber-mid); color:var(--amber); }
+  .b-purple { background:var(--purple-mid); color:var(--purple); }
+  .b-teal { background:var(--teal-mid); color:var(--teal); }
+  .b-gray { background:rgba(255,255,255,.08); color:var(--text2); }
+  h2 { font-size:1.75rem; font-weight:800; line-height:1.2; margin-bottom:10px; }
+  .section-sub { color: var(--muted); max-width: 760px; margin-bottom: 26px; }
+  .grid-2 { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:18px; }
+  .grid-4 { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:16px; }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    border:1px solid var(--border); border-radius: var(--r-lg); padding: 22px 22px 20px;
+    box-shadow: var(--sh); min-height: 100%;
+  }
+  .card h3 { font-size: 1.05rem; margin-bottom:8px; color: var(--text); }
+  .card p { color: var(--text2); font-size:.94rem; margin-bottom: 12px; }
+  .card ul { margin-left: 18px; color: var(--text2); font-size:.9rem; }
+  .card li { margin-bottom: 4px; }
+  .cta-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .btn {
+    display:inline-flex; align-items:center; gap:8px; border-radius:10px; padding:10px 14px; font-weight:700; font-size:.9rem;
+    border:1px solid var(--border); text-decoration:none;
+  }
+  .btn.primary { background: linear-gradient(180deg, rgba(90,174,224,.18), rgba(90,174,224,.08)); color: var(--text); }
+  .btn.secondary { background: rgba(255,255,255,.03); color: var(--text2); }
+  .btn:hover { text-decoration:none; transform: translateY(-1px); }
+  .kpi-grid { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; margin-top:18px; }
+  .kpi { background: var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; box-shadow: var(--sh); }
+  .kpi .label { color: var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; margin-bottom:8px; }
+  .kpi .value { color: var(--text); font-size:1rem; font-weight:700; }
+  .flow {
+    display:grid; grid-template-columns: 1.3fr .2fr 1fr .2fr 1fr; gap: 10px; align-items:center;
+    margin-top: 18px;
+  }
+  .flow .node {
+    background: var(--panel); border:1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--sh);
+  }
+  .flow .node h4 { margin-bottom: 6px; color: var(--text); }
+  .flow .node p { color: var(--text2); font-size:.9rem; }
+  .arrow { text-align:center; color: var(--muted); font-size: 1.6rem; }
+  .folder-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:18px; }
+  .folder-card { position:relative; overflow:hidden; }
+  .folder-card::after {
+    content:''; position:absolute; inset:auto -20% -40% auto; width:180px; height:180px; border-radius:50%;
+    background: radial-gradient(circle, rgba(90,174,224,.12), rgba(90,174,224,0));
+    pointer-events:none;
+  }
+  .mini-links { display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px; }
+  .mini-links a {
+    display:inline-block; padding:6px 10px; border-radius:999px; font-size:.8rem; background: rgba(255,255,255,.04); border:1px solid var(--border); color: var(--text2); text-decoration:none;
+  }
+  .mini-links a:hover { color: var(--text); }
+  .footer { padding: 36px 0 60px; color: var(--muted); font-size:.88rem; }
+  @media (max-width: 920px) {
+    .grid-2, .grid-4, .folder-grid, .kpi-grid, .flow { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); }
+  }
+</style>
+
+</head>
+<body>
+<header class="site-header">
+  <div class="site-logo">CMB<em>x</em> Cross-Correlation Hub</div>
+  <nav class="site-nav">
+    <a href="#intro" class="active">Introduction</a>
+    <a href="#ecosystem">Ecosystem</a>
+    <a href="#folders">Folders</a>
+    <a href="#workflow">Workflow</a>
+  </nav>
+</header>
+
+<section class="section hero" id="intro">
+  <div class="container">
+    <div class="eyebrow">Landing page</div>
+    <h1>Hot gas, large-scale structure, and CMB cross-correlations</h1>
+    <p class="hero-sub">
+      This hub organizes the software, notes, and diagnostics used to study thermal Sunyaev–Zel'dovich cross-correlations with Euclid galaxy clustering and weak lensing.
+      It is designed as a navigable entry point across <strong>GODMAX</strong>, <strong>tSZxEuclid</strong>, <strong>CLOE</strong>, and general <strong>diagnostics</strong>.
+    </p>
+    <div class="badges">
+      <span class="badge b-blue">tSZ × Euclid</span>
+      <span class="badge b-green">JAX + NumPyro</span>
+      <span class="badge b-amber">Angular power spectra</span>
+      <span class="badge b-purple">Halo model + inference</span>
+      <span class="badge b-teal">Debugging-oriented docs</span>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Physics target</div><div class="value">Hot gas pressure traced by Compton-$y$</div></div>
+      <div class="kpi"><div class="label">LSS tracers</div><div class="value">Euclid galaxies and weak lensing</div></div>
+      <div class="kpi"><div class="label">Theory layer</div><div class="value">Halo-model $P(k,z)$, $C_\ell$, covariance</div></div>
+      <div class="kpi"><div class="label">Inference layer</div><div class="value">Likelihood, diagnostics, parameter constraints</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="ecosystem">
+  <div class="container">
+    <div class="eyebrow">Scientific context</div>
+    <h2>CMBx cross-correlation introduction</h2>
+    <p class="section-sub">
+      The tSZ signal measures the line-of-sight integral of electron pressure, while Euclid probes the matter field through galaxy clustering and weak lensing.
+      Cross-correlating them connects thermodynamics and structure formation in one framework. In practice, the workflow runs from data products and map-level spectra,
+      through halo-model theory, to covariance construction and Bayesian inference.
+    </p>
+
+    <div class="flow">
+      <div class="node">
+        <h4>Maps and catalogs</h4>
+        <p>Planck or ACT Compton-$y$ maps, CMB lensing maps, and Euclid galaxy / lensing samples define the measured observables.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <h4>Theory layer</h4>
+        <p>Halo profiles, baryonic suppression, Limber projection, and noise / covariance models produce the prediction for $C_\ell$ and related statistics.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <h4>Inference layer</h4>
+        <p>Likelihood assembly, MCMC diagnostics, and posterior analysis convert the measured cross-correlations into cosmological and astrophysical constraints.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="folders">
+  <div class="container">
+    <div class="eyebrow">Repository layout</div>
+    <h2>Main folders</h2>
+    <p class="section-sub">
+      Each folder has its own landing page. Use this homepage as the top-level navigator, then move into the subsystem you want to inspect.
+    </p>
+
+    <div class="folder-grid">
+      <div class="card folder-card">
+        <h3>GODMAX</h3>
+        <p>Framework-level documentation for the halo model, gas thermodynamics, $P(k,z)$ construction, angular spectra, covariance, and implementation notes.</p>
+        <ul>
+          <li>Technical reference</li>
+          <li>Framework notes</li>
+          <li>Debugging guide</li>
+        </ul>
+        <div class="cta-row">
+          <a class="btn primary" href="godmax/index.html">Open GODMAX</a>
+        </div>
+        <div class="mini-links">
+          <a href="godmax/technical_reference.html">Technical reference</a>
+          <a href="godmax/framework.html">Framework</a>
+          <a href="godmax/debugging.html">Debugging</a>
+        </div>
+      </div>
+
+      <div class="card folder-card">
+        <h3>tSZxEuclid</h3>
+        <p>Pipeline-facing notes that connect Euclid/Planck/ACT products to GODMAX predictions and the DR1-KP-CMBX analysis flow.</p>
+        <ul>
+          <li>Pipeline overview</li>
+          <li>KP4 update notes</li>
+          <li>Repository structure and module map</li>
+        </ul>
+        <div class="cta-row">
+          <a class="btn primary" href="tszxeuclid/index.html">Open tSZxEuclid</a>
+        </div>
+        <div class="mini-links">
+          <a href="tszxeuclid/pipeline.html">Pipeline</a>
+          <a href="tszxeuclid/kp4_update.html">KP4 update</a>
+        </div>
+      </div>
+
+      <div class="card folder-card">
+        <h3>CLOE</h3>
+        <p>Interface-focused notes for the CLOE side of the workflow. This section is set up as a staging area for interface, likelihood, and integration notes.</p>
+        <ul>
+          <li>Interface summary</li>
+          <li>Integration checkpoints</li>
+          <li>Next additions can be dropped in directly</li>
+        </ul>
+        <div class="cta-row">
+          <a class="btn primary" href="cloe/index.html">Open CLOE</a>
+        </div>
+      </div>
+
+      <div class="card folder-card">
+        <h3>Diagnostics</h3>
+        <p>Central place for debugging logic: failure modes, sanity checks, covariance pathologies, unit consistency, and cross-package traceability.</p>
+        <ul>
+          <li>System-level debugging map</li>
+          <li>Numerical issues and checks</li>
+          <li>Links out to subsystem pages</li>
+        </ul>
+        <div class="cta-row">
+          <a class="btn primary" href="diagnostics/index.html">Open diagnostics</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="workflow">
+  <div class="container">
+    <div class="eyebrow">Suggested usage</div>
+    <h2>How to navigate this hub</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Start here when you need scientific context</h3>
+        <p>Go to <a href="godmax/index.html">GODMAX</a> if you need the model definition, equations, baryonic choices, covariance details, or implementation assumptions.</p>
+      </div>
+      <div class="card">
+        <h3>Use tSZxEuclid for pipeline questions</h3>
+        <p>Go to <a href="tszxeuclid/index.html">tSZxEuclid</a> if you want the Euclid × CMBx analysis flow, module boundaries, run logic, or project-specific updates.</p>
+      </div>
+      <div class="card">
+        <h3>Use CLOE for interface work</h3>
+        <p>Go to <a href="cloe/index.html">CLOE</a> for interface notes and integration-facing documentation that sits between pipeline code and likelihood usage.</p>
+      </div>
+      <div class="card">
+        <h3>Use diagnostics for debugging</h3>
+        <p>Go to <a href="diagnostics/index.html">diagnostics</a> if something looks wrong in $C_\ell$, covariance, priors, conditioning, or MCMC behaviour and you want a structured place to track it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container footer">
+  Built as a structured homepage for cross-correlation analysis notes and technical references.
+</div>
+</body>
+</html>
