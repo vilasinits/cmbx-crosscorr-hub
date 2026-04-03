@@ -353,6 +353,13 @@ details > *:not(summary) { padding: 0 18px 16px; }
     <a href="#hardcoded">Hardcoded constants</a>
     <a href="#flags">Runtime flags</a>
     <a href="#caveats">Caveats & approximations</a>
+    <a href="#cls-deep">C(ℓ) deep dive</a>
+    <a href="#cls-deep-kk" class="sub">kk — lensing auto</a>
+    <a href="#cls-deep-gk" class="sub">gk — galaxy × lensing</a>
+    <a href="#cls-deep-yy" class="sub">yy — tSZ auto</a>
+    <a href="#cls-deep-ky" class="sub">ky — lensing × tSZ</a>
+    <a href="#cls-deep-gy" class="sub">gy — galaxy × tSZ</a>
+    <a href="#cls-deep-suppress" class="sub">Suppression consistency</a>
   </div>
 </nav>
 
@@ -388,6 +395,7 @@ details > *:not(summary) { padding: 0 18px 16px; }
     <li><a href="#hardcoded">Hardcoded constants &amp; fixed settings</a></li>
     <li><a href="#flags">Runtime flags &amp; conditional logic</a></li>
     <li><a href="#caveats">Known approximations &amp; caveats</a></li>
+    <li><a href="#cls-deep">Diving deeper into angular power spectra</a></li>
   </ol>
 </div>
 
@@ -1133,6 +1141,477 @@ fsky_yy, fsky_ky, fsky_kk, fsky_yg, fsky_kg, fsky_gg
 <div class="flag">
   <strong>Photo-z bias shifts n(z) but does not renormalize in k-space</strong>
   <code>get_photoz_biased_nz</code> shifts the source n(z) by Δz and renormalizes the integral. It does not apply a multiplicative shear bias (<code>mult_shear_bias_array</code> is read but not currently applied in the main pipeline — verify in get_Cl if using).
+</div>
+
+<!-- ====================================================== -->
+<h2 id="cls-deep">Diving Deeper into Angular Power Spectra</h2>
+
+<p>
+  Each C(ℓ) is obtained via the same Limber machinery but the 3D power spectrum $P_{AB}(k,z)$ that enters,
+  the window functions $W_A(z)$, the beam, and — critically — whether the baryonic suppression $S(k,z)$ has been
+  applied to $P_{AB}$, differ per probe. This section documents all of these choices in one place and then
+  derives the self-consistent prescription for $S$ across all six probe cross-combinations.
+</p>
+<p>All spectra share the same Limber kernel:</p>
+<div class="eq-block">
+  $$C_\ell^{AB} = \int_0^{z_{\rm max}} \frac{\dd z}{\chi^2(z)}\frac{\dd\chi}{\dd z}\; W_A(z)\,W_B(z)\;P_{AB}\!\!\left(\frac{\ell+\tfrac{1}{2}}{\chi(z)},\,z\right)$$
+</div>
+
+<!-- ---- kk ---- -->
+<h3 id="cls-deep-kk">$\langle\kappa\kappa\rangle$ — CMB / weak-lensing auto <span class="badge badge-jax">JAX</span></h3>
+
+<h4>3D power spectrum</h4>
+<p>
+  <code>Pmm_tot_mat[nk, nz]</code> = baryonified matter power $P_{\rm dmb}(k,z) \times S(k,z)$.
+  <br>If <code>model_matter='halofit'</code> the full $P_{\rm halofit}$ is used directly (i.e. $S \equiv 1$).
+</p>
+
+<h4>Window function</h4>
+<div class="eq-block">
+  $$W_\kappa(z, b) = \frac{3H_0^2\Omega_m}{2c^2}(1+z)\,\chi(z)\int_z^{z_{\rm max}}\!\frac{\chi(z')-\chi(z)}{\chi(z')}\frac{\dd n_s^{(b)}}{\dd z'}\dd z'
+  \;-\; A_{\rm IA}\,C_1\,\rho_{m,\rm bar}\,D^{-1}(z)\!\left(\frac{1+z}{1+z_0}\right)^{\!\eta_{\rm IA}}\!\frac{\dd n_s^{(b)}}{\dd z}$$
+  <div class="eq-label">Lensing kernel (first term) + NLA intrinsic-alignment contribution (second term). Photo-z bias shifts n(z) by Δz before evaluation.</div>
+</div>
+
+<h4>Beam</h4>
+<p>None. kk does not involve the tSZ field.</p>
+
+<h4>Noise</h4>
+<p>
+  Shape noise — diagonal in source-bin pairs:
+  $N_\ell^{\kappa\kappa}(b,b') = \delta_{bb'}\,\sigma_\varepsilon^2(b)\,/\,n_{\rm eff}(b)$.
+  For GODMAX's Gaussian covariance the kk × kk block additionally gets the B-mode noise correction
+  $N_\ell^{BB}$ (since shape noise contributes equally to E and B modes).
+</p>
+
+<h4>Where it appears in the code</h4>
+<pre>
+# In get_Cl.__init__:
+cached_power_spectra[0, 0, :, :]  = P_kk_lz_mat      # baryonified κ
+cached_power_spectra[1, 1, :, :]  = P_kk_nfw_lz_mat   # NFW/halofit κ (if calc_nfw_only=True)
+
+# C(ℓ) assembled via:
+Cl_kappa_kappa_tot_mat  = get_Cl_tot(bin1, bin2, 0, 0)
+</pre>
+
+<h4>Suppression status</h4>
+<p><strong>Full $S(k,z)$ applied</strong> at the 3D power spectrum level via <code>Pmm_tot_mat = Pmm_dmb × S</code>. The lensing convergence integrates over all matter — dark matter and baryons — so the baryonified spectrum is the physically correct input.</p>
+
+<!-- ---- gk ---- -->
+<h3 id="cls-deep-gk">$\langle g\kappa\rangle$ — galaxy × lensing <span class="badge badge-jax">JAX</span></h3>
+
+<h4>3D power spectrum</h4>
+<p>
+  <code>Pgm_tot_mat[nk, nz]</code> = $(P_{\rm 1H,gm} + P_{\rm 2H,gm}) \times S(k,z)$.
+  The galaxy Fourier profile used here is $\tilde{u}_{g,\rm cross}$ (central + satellite × NFW CLM kernel),
+  and the matter profile is $\tilde{u}_{\rm dmb}$.
+</p>
+
+<h4>Window functions</h4>
+<div class="eq-block">
+  $$W_g(z, b_\ell) = \frac{n_{\rm lens}^{(b_\ell)}(z)}{\int n_{\rm lens}^{(b_\ell)}\,\dd z}, \qquad W_\kappa(z, b_s) = \text{(lensing kernel for source bin }b_s\text{)}$$
+</div>
+
+<h4>Beam</h4>
+<p>None.</p>
+
+<h4>Noise</h4>
+<p>Zero by default — galaxies and CMB lensing are assumed to have uncorrelated noise.</p>
+
+<h4>Where it appears in the code</h4>
+<pre>
+cached_power_spectra[2, 0, :, :]  = P_gk_lz_mat
+
+Cl_g_kappa_tot_mat  = get_Cl_tot(bin_lens, bin_source, 2, 0)
+</pre>
+
+<h4>Suppression status</h4>
+<p><strong>Full $S(k,z)$ applied</strong>. Both the galaxy (NFW-positioned halos) and the matter (lensing) fields need the baryonic correction — both are NFW-based in the halo model. This is the self-consistent result derived in the <a href="#cls-deep-suppress">suppression section below</a>.</p>
+
+<!-- ---- yy ---- -->
+<h3 id="cls-deep-yy">$\langle yy\rangle$ — tSZ auto <span class="badge badge-jax">JAX</span></h3>
+
+<p>The full computational chain for $C_\ell^{yy}$ is longer than any other probe because the y field is built
+from scratch within GODMAX rather than being proxied by an NFW profile. Each step is documented below in order.</p>
+
+<h4>Step 1 — BCMP gas density profile → electron pressure</h4>
+<p>In <code>get_radial_profiles.run_pressure_calc()</code> (called if <code>model_tSZ=True</code>):</p>
+<ol>
+  <li>The BCMP gas density profile $\rho_{\rm gas}(r;M,z)$ (with ejection and core radii $r_{\rm ej}$, $r_{\rm co}$, slope $\beta$ all mass- and z-dependent) is already stored in <code>rho_gas_mat[nr, nz, nM]</code> from the earlier <code>run_gas_calc()</code> call.</li>
+  <li>Thermal pressure is derived under hydrostatic equilibrium with non-thermal support:
+    <div class="eq-block">
+      $$P_{\rm th}(r;M,z) = P_{\rm tot}(r;M,z)\cdot\bigl[1 - f_{nt}(r;z)\bigr], \quad f_{nt} = \alpha_{nt}\!\left(\frac{r}{r_{500c}}\right)^{\!\beta_{nt}}(1+z)^{n_{nt}}$$
+    </div>
+  </li>
+  <li>Electron pressure (assuming fully ionized, fixed He fraction):
+    <div class="eq-block">
+      $$P_e(r;M,z) = \frac{P_{\rm th}(r;M,z)}{1.932}$$
+      <div class="eq-label">Stored as <code>Pe_mat_physical[nr, nz, nM]</code> in units of keV/cm³</div>
+    </div>
+  </li>
+  <li>3D Compton-y profile:
+    <div class="eq-block">
+      $$y_{\rm 3d}(r;M,z) = \frac{\sigma_T}{m_e c^2}\,P_e(r;M,z)\times \text{Mpc}\to\text{cm}$$
+      <div class="eq-label">Coefficient $\approx 5.03\times10^{-10}\,\text{(cm}^3/\text{keV)}\cdot h^{-1}$. Stored as <code>y3d_mat[nr, nz, nM]</code>.</div>
+    </div>
+  </li>
+</ol>
+
+<h4>Step 2 — FFTLog: real-space y profile → Fourier profile $\tilde{u}_y(k,M,z)$</h4>
+<p>In <code>get_Pkzs.__init__</code>, immediately after the CLM and electron FFTLogs:</p>
+<pre>
+# get_Pkzs.py
+k_mcfit, uk_y = xi2P_obj(self.y3d_mat, axis=0, extrap=False)
+self.uk_y_tointp = jnp.array(uk_y)     # shape [nk_fftlog, nz, nM]
+</pre>
+<p>The FFTLog output <code>uk_y_tointp</code> is on a non-uniform k grid from <code>xi2P</code>.
+It is then log-log interpolated onto <code>kPk_array</code> and stored as probe index 3 inside
+<code>get_uk_interp</code>:</p>
+<pre>
+# Inside get_uk_interp(jk, jz, jM, probe):
+(probe == 3,  self.uk_y_tointp[:, jz, jM])   # tSZ Fourier profile
+</pre>
+
+<h4>Step 3 — tSZ bias $b_y(k,z)$ and 2-halo term</h4>
+<p>In <code>get_Pkzs.__init__</code>, the effective large-scale tSZ bias is computed as the mass-weighted integral of $\tilde{u}_y$:</p>
+<div class="eq-block">
+  $$b_y(k,z) = \int_{M_{\rm min}}^{M_{\rm max}} \tilde{u}_y(k,M,z)\,b(M,z)\,\frac{\dd N}{\dd\ln M}\,\dd\ln M$$
+  <div class="eq-label"><code>by_kz_mat[nk, nz]</code> — computed by vmapping <code>get_b_X(jk, jz, probe=3)</code></div>
+</div>
+<p>The 2-halo yy power spectrum follows immediately (still in <code>get_Pkzs</code>):</p>
+<div class="eq-block">
+  $$P_{yy}^{\rm 2H}(k,z) = b_y(k,z)^2\,P_{\rm lin}(k,z)$$
+  <div class="eq-label"><code>Pyy_2h_kz_mat = by_kz_mat * by_kz_mat * plin_kz_mat</code> (assembled in <code>get_Cls.__init__</code>)</div>
+</div>
+
+<h4>Step 4 — 1-halo term and total $P_{yy}(k,z)$</h4>
+<p>Assembled in <code>get_Cls.__init__</code> (note: unlike $P_{gg}$, $P_{gm}$, etc. which are fully assembled in <code>get_Pkzs</code>, $P_{yy}$ is assembled one class later):</p>
+<div class="eq-block">
+  $$P_{yy}^{\rm 1H}(k,z) = \int \tilde{u}_y(k,M,z)^2\,\frac{\dd N}{\dd\ln M}\,\dd\ln M$$
+  <div class="eq-label"><code>Pyy_1h_kz_mat</code> via <code>get_vmapped_func_warg(get_P_1h, 2, 4)(arange(nk), arange(nz), 3, 3)</code></div>
+</div>
+<div class="eq-block">
+  $$P_{yy}^{\rm tot}(k,z) = P_{yy}^{\rm 1H}(k,z) + P_{yy}^{\rm 2H}(k,z)$$
+  <div class="eq-label"><code>Pyy_tot_kz_mat[nk, nz]</code> — no $S(k,z)$ ever applied</div>
+</div>
+
+<h4>Step 5 — Limber projection with beam² baked in</h4>
+<p>The method <code>get_Pkyy_lz(jl, jz)</code> evaluates $P_{yy}$ at the Limber wavenumber and applies the beam immediately:</p>
+<div class="eq-block">
+  $$\tilde{P}_{yy}(\ell, z) = B_\ell^2 \times P_{yy}^{\rm tot}\!\!\left(\frac{\ell+\tfrac{1}{2}}{\chi(z)},\,z\right), \quad B_\ell = \exp\!\!\left(-\frac{\ell(\ell+1)\sigma_{\rm beam}^2}{2}\right)$$
+  <div class="eq-label"><code>Pkyy_lz_mat[nell, nz]</code>. $B_\ell^2$ because both y fields carry one beam factor.</div>
+</div>
+<p>This is the key difference from all other probes: the beam enters inside <code>get_Pkyy_lz</code> rather than being applied afterward. For ky and gy, $B_\ell^1$ is applied to the Limber-projected matrix after the fact.</p>
+
+<h4>Step 6 — 2D log-log interpolator and cache</h4>
+<pre>
+# get_Cls.py
+self.logPkyylz_2d_interp = interpax.Interpolator2D(
+    jnp.log(self.ell_array), self.z_array,
+    jnp.log(self.Pkyy_lz_mat), extrap=True
+)
+# Evaluate on the finer z_array_for_Cls grid:
+self.cached_power_spectra = self.cached_power_spectra.at[3,3].set(
+    vmap(lambda l: jnp.exp(self.logPkyylz_2d_interp(l, self.z_array_for_Cls)))(log_ell)
+)
+</pre>
+
+<h4>Step 7 — $C_\ell^{yy}$ signal via Limber integral</h4>
+<div class="eq-block">
+  $$C_\ell^{yy} = \int_0^{z_{\rm max}} \frac{\dd z}{\chi^2(z)}\frac{\dd\chi}{\dd z}\;W_y(z)^2\;\tilde{P}_{yy}(\ell,z), \qquad W_y(z) = \frac{1}{1+z}$$
+  <div class="eq-label">
+    <code>Cl_y_y_signal_mat = get_Cl_tot(0, 0, 3, 3)</code>.
+    Bin indices (0,0) because there is no tomography for y.
+    $W_y = 1/(1+z)$ is the comoving volume weighting; it is the same for all tSZ-containing probes.
+  </div>
+</div>
+
+<h4>Step 8 — Noise loading and total spectrum</h4>
+<p>Three code paths in <code>get_Cls.__init__</code>:</p>
+<pre>
+if yy_total_ell_fname is not None:
+    # load total C_ell^yy from file, interpolate onto ell_array
+    Cl_y_y_tot_mat   = interpolated file
+    Cl_y_y_noise_mat = Cl_y_y_tot_mat - Cl_y_y_signal_mat   # noise = total − theory
+
+elif yy_noise_ell_fname is not None:
+    # load noise directly from file
+    Cl_y_y_noise_mat = interpolated file
+    Cl_y_y_tot_mat   = Cl_y_y_signal_mat + Cl_y_y_noise_mat  # total = theory + noise
+
+else:
+    print('Warning: no yy file — Cl_y_y_tot_mat = theory only')
+    Cl_y_y_noise_mat = zeros
+    Cl_y_y_tot_mat   = Cl_y_y_signal_mat
+</pre>
+<p>The noise is not computed analytically — it is the residual map noise from the actual y-map reconstruction (foregrounds, CMB residuals, instrumental noise) and must be provided externally.</p>
+
+<h4>Step 9 — Output into result dicts</h4>
+<pre>
+# In Cl_result_dict (get_cov output):
+Cl_result_dict['yy']['bin_0_0']['tot_ellsurvey']              # = Cl_y_y_signal_mat on l_array_survey
+Cl_result_dict['yy']['bin_0_0']['tot_plus_noise_ellsurvey']   # = Cl_y_y_tot_mat on l_array_survey
+Cl_result_dict['yy']['bin_0_0']['noise_ellsurvey']            # = Cl_y_y_noise_mat on l_array_survey
+</pre>
+
+<h4>Step 10 — Profile kernel for non-Gaussian covariance</h4>
+<p>The tSZ trispectrum requires the profile kernel evaluated at every $(\ell, z, M)$:</p>
+<div class="eq-block">
+  $$u_y^{(\ell)}(z, M) = B_\ell \cdot \tilde{u}_y\!\left(\frac{\ell+\tfrac{1}{2}}{\chi(z)},\,M,\,z\right) \cdot \frac{W_y(z)}{\chi^2(z)}$$
+  <div class="eq-label">
+    <code>uy_l_for_cov[nell, nz_for_Cls, nM]</code> built via <code>get_uyl_interp + get_uy_l_forcov()</code> in <code>get_cov.__init__</code>.
+    Stored as <code>ul_dict['y_0']</code> and passed to <code>get_T_ABCD_NG</code> for all probe pairs involving y.
+    Note $B_\ell^1$ here (not $B_\ell^2$): each y leg in the trispectrum contributes one beam factor independently.
+  </div>
+</div>
+
+<h4>Where $P_{th}$ lives — and where $P_{\rm lin}$ lives</h4>
+<p>
+  A common source of confusion: the tSZ power spectrum has both $\tilde{u}_y$ and $P_{\rm lin}$ appearing in
+  it (the 2-halo term is $b_y^2 P_{\rm lin}$). These carry completely different physics:
+</p>
+<table>
+  <tr><th>Quantity</th><th>What it encodes</th><th>Contains gas/pressure physics?</th></tr>
+  <tr><td>$\tilde{u}_y(k,M,z)$</td><td>Fourier transform of $y_{\rm 3d} \propto P_e \propto P_{\rm th}$. Encodes the radial distribution of electron pressure within a halo of mass $M$ at redshift $z$.</td><td><strong>Yes</strong> — entirely determined by BCMP profile shape</td></tr>
+  <tr><td>$b_y(k,z) = \int n\,b\,\tilde{u}_y\,\dd\ln M$</td><td>Effective large-scale tSZ bias. Amplitude comes from $\tilde{u}_y$; tells you how strongly the y field traces the underlying matter density field.</td><td><strong>Yes</strong> — through $\tilde{u}_y$</td></tr>
+  <tr><td>$P_{\rm lin}(k,z)$</td><td>Linear matter power spectrum from jax_cosmo / CAMB. Pure dark-matter gravity; knows nothing about gas, pressure, or baryons.</td><td><strong>No</strong></td></tr>
+</table>
+<p>
+  In the 1-halo term $P_{yy}^{1h} = \int n\,|\tilde{u}_y|^2\,\dd\ln M$, the gas physics enters directly as the
+  squared pressure profile. In the 2-halo term $P_{yy}^{2h} = b_y^2\,P_{\rm lin}$, $P_{\rm lin}$ only sets the
+  <em>shape</em> of large-scale clustering (same shape as the dark matter field); the <em>amplitude</em> is set by
+  $b_y^2$ which comes entirely from $\tilde{u}_y$ — and hence from $P_{th}$ through the chain
+  BCMP→$\rho_{\rm gas}$→$P_{th}$→$P_e$→$y_{\rm 3d}$→$\tilde{u}_y$.
+</p>
+
+<h4>Suppression status</h4>
+<p><strong>No $S(k,z)$ applied — by design.</strong>
+$S = P_{\rm halofit}/P_{\rm NFW}$ corrects the matter field from an NFW-based halo model to the true
+baryonified clustering. The y field has no NFW baseline to correct away from — it was built directly from
+the BCMP pressure profile from the start. Applying $S$ to $P_{yy}$ would therefore not add baryonic physics;
+it would be an unjustified extra suppression on top of physics that is already correctly modelled.
+See the <a href="#cls-deep-suppress">suppression derivation</a> for why this means cross-spectra $P_{gy}$
+and $P_{ym}$ should each receive $\sqrt{S}$, not $S$ and not nothing.</p>
+
+<!-- ---- ky ---- -->
+<h3 id="cls-deep-ky">$\langle\kappa y\rangle$ — lensing × tSZ <span class="badge badge-jax">JAX</span></h3>
+
+<h4>3D power spectrum</h4>
+<p>
+  <code>Pym_tot_mat[nk, nz]</code> — the y × matter cross-power. Two computation paths depending on
+  <code>tSZ_transition_model</code>:
+</p>
+<ul>
+  <li><strong><code>poweradd</code> (default)</strong>: $P_{ym} = \bigl(P_{\rm 1H,ym}^{\alpha_{ky}} + P_{\rm 2H,ym}^{\alpha_{ky}}\bigr)^{1/\alpha_{ky}}$ — no suppression factor applied.</li>
+  <li><strong><code>response</code></strong>: same poweradd result, additionally multiplied by $S(k,z)$.</li>
+</ul>
+<p>The 1-halo kernel is $\int n(M)\,\tilde{u}_y(k,M,z)\,\tilde{u}_{\rm dmb}(k,M,z)\,\dd\ln M$ and the 2-halo term is $b_y(k,z)\,b_m(k,z)\,P_{\rm lin}(k,z)$.</p>
+
+<h4>Window functions</h4>
+<div class="eq-block">
+  $$W_\kappa(z, b_s) \times W_y(z) = W_\kappa(z, b_s) \times \frac{1}{1+z}$$
+</div>
+
+<h4>Beam</h4>
+<p>Beam-to-the-power-1 applied to the Limber-projected kernel:</p>
+<div class="eq-block">
+  $$\tilde{P}_{ky}(\ell, z) = P_{ky}\!\left(\frac{\ell+\tfrac{1}{2}}{\chi},z\right) \times B_\ell$$
+  <div class="eq-label">One beam factor — only the y field is beam-convolved; the κ field is not.</div>
+</div>
+
+<h4>Noise</h4>
+<p>Zero by default (CMB lensing noise and y-map noise are uncorrelated).</p>
+
+<h4>Where it appears in the code</h4>
+<pre>
+Pkym_lz_mat[nell, nz]               # includes B_ell^1
+cached_power_spectra[0, 3, :, :]  = Pkym_lz_mat
+
+Cl_kappa_y_tot_mat = get_Cl_tot(bin_source, 0, 0, 3)
+
+Cl_result_dict['ky']['bin_{s}_0']['tot_ellsurvey']
+</pre>
+
+<h4>Suppression status</h4>
+<p><strong>No $S(k,z)$ in default <code>poweradd</code> mode.</strong> The matter side of $P_{ym}$ is NFW-based and, from the derivation below, should receive a $\sqrt{S}$ correction. The response model is the only path that applies suppression, and it applies the full $S$ rather than $\sqrt{S}$. See the <a href="#cls-deep-suppress">derivation section</a> for the precise prescription.</p>
+
+<!-- ---- gy ---- -->
+<h3 id="cls-deep-gy">$\langle gy\rangle$ — galaxy × tSZ <span class="badge badge-jax">JAX</span></h3>
+
+<h4>3D power spectrum</h4>
+<p>
+  <code>Pgy_tot_mat[nk, nz]</code>. Same two paths as $P_{ym}$:
+</p>
+<ul>
+  <li><strong><code>poweradd</code> (default)</strong>: $P_{gy} = \bigl(P_{\rm 1H,gy}^{\alpha_{gy}} + P_{\rm 2H,gy}^{\alpha_{gy}}\bigr)^{1/\alpha_{gy}}$ — no suppression.</li>
+  <li><strong><code>response</code></strong>: additionally $\times\, S(k,z)$.</li>
+</ul>
+<p>The 1-halo kernel uses $\tilde{u}_{g,\rm cross}$ (the cross-galaxy profile, central + satellite weighted by CLM) and $\tilde{u}_y$ (BCMP pressure).</p>
+
+<h4>Window functions</h4>
+<div class="eq-block">
+  $$W_g(z, b_\ell) \times W_y(z) = W_g(z, b_\ell) \times \frac{1}{1+z}$$
+</div>
+
+<h4>Beam</h4>
+<p>Beam-to-the-power-1 (same as ky — one y field):</p>
+<div class="eq-block">
+  $$\tilde{P}_{gy}(\ell, z) = P_{gy}\!\left(\frac{\ell+\tfrac{1}{2}}{\chi},z\right) \times B_\ell$$
+</div>
+
+<h4>Noise</h4>
+<p>Zero by default.</p>
+
+<h4>Where it appears in the code</h4>
+<pre>
+Pkgy_lz_mat[nell, nz]               # includes B_ell^1
+cached_power_spectra[2, 3, :, :]  = Pkgy_lz_mat
+
+Cl_g_y_tot_mat = get_Cl_tot(bin_lens, 0, 2, 3)
+
+Cl_result_dict['gy']['bin_{l}_0']['tot_ellsurvey']
+</pre>
+
+<h4>Suppression status</h4>
+<p><strong>No $S(k,z)$ in default <code>poweradd</code> mode.</strong> The galaxy side of $P_{gy}$ is NFW-based and should receive $\sqrt{S}$; the y side is BCMP and needs none. The response model applies full $S$ to the whole cross-spectrum, which over-corrects the y side. See below for the rigorous derivation.</p>
+
+<!-- ---- suppression derivation ---- -->
+<h3 id="cls-deep-suppress">Baryonic suppression consistency across probes — derivation</h3>
+
+<p>
+  $S$ is defined at the level of the matter <em>auto-spectrum</em>. The question is: what correction does this
+  imply for cross-spectra that mix an NFW-based field (matter, galaxies) with the BCMP gas field (tSZ)?
+  The answer follows directly from the bilinear structure of the halo model.
+</p>
+
+<h4>Step 1 — What $S$ is and what it corrects</h4>
+<div class="eq-block">
+  $$S(k,z) \equiv \frac{P_{\rm halofit}(k,z)}{P_{\rm NFW,tot}(k,z)} < 1 \quad \text{for } k \gtrsim 0.1\,h\,\text{Mpc}^{-1}$$
+</div>
+<p>
+  The halo model with NFW profiles over-predicts the matter clustering on small scales because it ignores that
+  baryonic feedback (AGN, stellar winds) has ejected gas from halos, redistributing mass to larger radii and
+  reducing the matter power. $S$ quantifies this suppression by comparing to halofit (calibrated on hydro
+  simulations). Applying $S$ to $P_{mm}$ brings the NFW halo model into agreement with the true baryonified
+  matter power spectrum.
+</p>
+
+<h4>Step 2 — $S$ is defined for an auto-spectrum, so it involves <em>squaring</em> a profile correction</h4>
+<p>
+  In the halo model, all power spectra are <strong>bilinear</strong> in Fourier-space profiles —
+  linear in $\tilde{u}_A$ and linear in $\tilde{u}_B$ separately:
+</p>
+<div class="eq-block">
+  $$P_{AB}(k,z) = \underbrace{\int n(M)\,\tilde{u}_A(k,M,z)\,\tilde{u}_B(k,M,z)\,\dd\ln M}_{\text{1-halo}} + \underbrace{b_A(k,z)\,b_B(k,z)\,P_{\rm lin}(k,z)}_{\text{2-halo}}$$
+</div>
+<p>
+  The auto-spectrum $P_{mm}$ involves the <em>same profile squared</em>: $\tilde{u}_m^2$ in the 1-halo, and
+  $b_m^2$ in the 2-halo. So when we say $P_{mm}^{\rm true} = S \cdot P_{mm}^{\rm halo}$, we are saying that
+  the effective matter profile is rescaled by $\sqrt{S}$:
+</p>
+<div class="eq-block">
+  $$\tilde{u}_m^{\rm eff} = \sqrt{S(k,z)}\cdot\tilde{u}_m^{\rm NFW}$$
+  <div class="eq-label">Squaring recovers the auto-spectrum: $[\sqrt{S}\,\tilde{u}_m]^2 = S\,[\tilde{u}_m]^2$, hence $P_{mm}^{\rm eff} = S\cdot P_{mm}^{\rm halo}$ ✓</div>
+</div>
+<p>
+  The key point: <strong>$S$ is the correction at the power-spectrum level, but $\sqrt{S}$ is the correction
+  at the field/profile level</strong>. The factor of 2 (in log) comes from squaring.
+</p>
+
+<h4>Step 3 — Assign a field-level correction $f_X$ to each probe</h4>
+<p>
+  Every probe is characterized by one Fourier profile. The profile-level correction $f_X$ depends only on
+  whether that profile is NFW-based (needs correction) or BCMP-based (already physical):
+</p>
+<table>
+  <tr><th>Field / probe</th><th>Profile</th><th>Reason</th><th>$f_X$</th></tr>
+  <tr><td>$\kappa$ / $m$ — lensing / matter</td><td>$\tilde{u}_{\rm dmb}$ (NFW + baryon correction)</td><td>NFW baseline; $S$ corrects this to halofit</td><td>$\sqrt{S}$</td></tr>
+  <tr><td>$g$ — galaxies</td><td>$\tilde{u}_{g,\rm cross}$ (CLM, NFW-positioned HOD)</td><td>Galaxy positions trace NFW halos; same NFW baseline</td><td>$\sqrt{S}$</td></tr>
+  <tr><td>$y$ — tSZ</td><td>$\tilde{u}_y$ (FFTLog of BCMP $y_{\rm 3d} \propto P_e \propto P_{\rm th}$)</td><td>Built directly from physical gas pressure; no NFW assumption anywhere in the profile</td><td>$1$</td></tr>
+</table>
+
+<h4>Step 4 — Cross-spectra pick up one factor of $f$ per field</h4>
+<p>
+  Because the halo model is bilinear in profiles, each field in a cross-spectrum contributes its own
+  correction factor independently:
+</p>
+<div class="eq-block">
+  $$P_{AB}^{\rm corrected} = f_A \times f_B \times P_{AB}^{\rm halo}$$
+</div>
+<p>The full table of corrections follows immediately:</p>
+<table>
+  <tr><th>Spectrum</th><th>Field A</th><th>Field B</th><th>$f_A \times f_B$</th><th>GODMAX default</th></tr>
+  <tr><td>$P_{mm}$, $P_{kk}$</td><td>NFW ($\sqrt{S}$)</td><td>NFW ($\sqrt{S}$)</td><td>$\sqrt{S}\cdot\sqrt{S} = S$</td><td><strong>S ✓</strong></td></tr>
+  <tr><td>$P_{gg}$</td><td>NFW ($\sqrt{S}$)</td><td>NFW ($\sqrt{S}$)</td><td>$S$</td><td><strong>S ✓</strong></td></tr>
+  <tr><td>$P_{gm}$, $P_{gk}$</td><td>NFW ($\sqrt{S}$)</td><td>NFW ($\sqrt{S}$)</td><td>$S$</td><td><strong>S ✓</strong></td></tr>
+  <tr><td>$P_{gy}$</td><td>NFW ($\sqrt{S}$)</td><td>BCMP ($1$)</td><td>$\sqrt{S}$</td><td><strong>1 ✗</strong> — missing $\sqrt{S}$</td></tr>
+  <tr><td>$P_{ym}$, $P_{ky}$</td><td>BCMP ($1$)</td><td>NFW ($\sqrt{S}$)</td><td>$\sqrt{S}$</td><td><strong>1 ✗</strong> — missing $\sqrt{S}$</td></tr>
+  <tr><td>$P_{yy}$</td><td>BCMP ($1$)</td><td>BCMP ($1$)</td><td>$1$</td><td><strong>1 ✓</strong></td></tr>
+</table>
+<p>
+  Notice that the current GODMAX treatment of $P_{mm}$, $P_{gg}$, $P_{gm}$ is <em>already correct</em> and
+  consistent with $f = \sqrt{S}$ per NFW field — applying full $S$ to their power spectra is exactly what you
+  get when two NFW fields each contribute $\sqrt{S}$. The problem is only for the mixed NFW × BCMP spectra
+  ($P_{gy}$, $P_{ym}$), where one field should contribute $\sqrt{S}$ and the other nothing.
+</p>
+
+<h4>Why $S$ (full) on $P_{gy}$ would be wrong</h4>
+<p>
+  Applying the full $S$ to $P_{gy}$ would be equivalent to assigning $f_y = \sqrt{S}$ to the y field —
+  i.e. treating the y profile as if it also needs an NFW→baryonified correction. But the y profile is already
+  the baryonified result (BCMP gas). Suppressing it by $\sqrt{S}$ would double-count the baryon redistribution
+  on the y side, making the tSZ signal artificially lower than the gas model predicts.
+</p>
+
+<h4>PSD — why $\sqrt{S}$ is the <em>only</em> consistent prescription</h4>
+<p>
+  Construct the 3×3 power-spectrum matrix at fixed $(k,z)$:
+</p>
+<div class="eq-block">
+  $$M^{\rm halo} = \begin{pmatrix} P_{kk} & P_{gk} & P_{ky} \\ P_{gk} & P_{gg} & P_{gy} \\ P_{ky} & P_{gy} & P_{yy} \end{pmatrix}^{\rm halo}$$
+</div>
+<p>
+  The halo model guarantees $M^{\rm halo}$ is positive semi-definite — it is a sum of rank-1 outer products
+  $\mathbf{u}\mathbf{u}^T$ where $\mathbf{u} = (\tilde{u}_\kappa, \tilde{u}_g, \tilde{u}_y)$. Applying
+  $f_\kappa = f_g = \sqrt{S}$, $f_y = 1$ to each field is a <em>congruence transformation</em>:
+</p>
+<div class="eq-block">
+  $$M^{\rm corrected} = D\,M^{\rm halo}\,D, \qquad D = \mathrm{diag}\!\left(\sqrt{S},\;\sqrt{S},\;1\right)$$
+  <div class="eq-label">A congruence $DMD$ with any positive-definite $D$ preserves positive semi-definiteness.</div>
+</div>
+<p>
+  Any other diagonal correction that does not match the $f_A \times f_B$ bilinear structure — such as applying
+  full $S$ to $P_{gg}$ but nothing to $P_{gy}$ and $P_{yy}$ — is not a congruence transformation and can
+  break PSD. Concretely, with the current GODMAX defaults, the Cauchy–Schwarz condition
+  $P_{gy}^2 \leq P_{gg} \cdot P_{yy}$ becomes:
+</p>
+<div class="eq-block">
+  $$\underbrace{\bigl(P_{gy}^{\rm halo}\bigr)^2}_{\text{unchanged}} \leq \underbrace{S \cdot P_{gg}^{\rm halo}}_{\displaystyle P_{gg}} \cdot \underbrace{P_{yy}^{\rm halo}}_{\displaystyle P_{yy}}$$
+</div>
+<p>
+  The halo model only guarantees $(P_{gy}^{\rm halo})^2 \leq P_{gg}^{\rm halo} \cdot P_{yy}^{\rm halo}$,
+  which is weaker by $1/S > 1$. Wherever $S \ll 1$ (small scales, high-mass halos), this fails and the
+  covariance matrix acquires genuine negative eigenvalues — not numerical noise but physical inconsistency
+  from the asymmetric suppression.
+</p>
+
+<h4>The fix</h4>
+<p>Apply $\sqrt{S(k,z)}$ to <code>Pgy_tot_mat</code> and <code>Pym_tot_mat</code> in <code>get_Pkzs.py</code>:</p>
+<div class="eq-block">
+  $$P_{gy}^{\rm corrected} = P_{gy}^{\rm poweradd} \times \sqrt{S(k,z)}, \qquad P_{ym}^{\rm corrected} = P_{ym}^{\rm poweradd} \times \sqrt{S(k,z)}$$
+</div>
+<p>
+  This is the only prescription that: (a) correctly corrects the NFW galaxy/matter side, (b) does not
+  touch the BCMP gas side, and (c) guarantees a PSD covariance matrix at the 3D power-spectrum level
+  before Limber projection.
+</p>
+<div class="note">
+  <strong>Note on the response model:</strong> <code>tSZ_transition_model='response'</code> applies the
+  <em>full</em> $S$ to $P_{gy}$ and $P_{ym}$. In the congruence framework this corresponds to
+  $D = \mathrm{diag}(\sqrt{S}, \sqrt{S}, \sqrt{S})$, i.e. also suppressing the y field by $\sqrt{S}$.
+  That is equivalent to treating the BCMP profile as if it also needs an NFW correction — double-counting
+  the gas redistribution. The correct prescription is $\sqrt{S}$ (one field-level factor) on the
+  mixed-field cross-spectra only.
 </div>
 
 <hr>
